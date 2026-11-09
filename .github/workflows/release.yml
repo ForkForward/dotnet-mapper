@@ -20,12 +20,12 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         # MinVer computes the version from the tags, so it needs the full history.
         fetch-depth: 0
     - name: Setup .NET
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         # The .NET 10 SDK builds everything, and the tests run on the .NET 10 runtime it brings.
         dotnet-version: 10.0.x
@@ -36,7 +36,7 @@ jobs:
       run: ./Build.ps1
       shell: pwsh
     - name: Packages
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: packages
         path: |
@@ -54,7 +54,7 @@ jobs:
       id-token: write  # lets this job request the GitHub OIDC token that nuget.org trusts
     steps:
     - name: Packages
-      uses: actions/download-artifact@v4
+      uses: actions/download-artifact@v8
       with:
         name: packages
         path: packages
