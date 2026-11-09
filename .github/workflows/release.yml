@@ -65,8 +65,9 @@ jobs:
       uses: NuGet/login@v1
       id: login
       with:
-        # The nuget.org profile name of the publishing account, not its e-mail address.
-        user: ${{ secrets.NUGET_USER }}
+        # The nuget.org profile name of the publishing account (https://www.nuget.org/profiles/ForkForward),
+        # not its e-mail address. It is public, so it does not need to be a secret.
+        user: ForkForward
     # Pushing a .nupkg also pushes the .snupkg next to it to the symbol server.
     - name: NuGet push
       run: dotnet nuget push "packages/*.nupkg" --api-key ${{ steps.login.outputs.NUGET_API_KEY }} --source https://api.nuget.org/v3/index.json --skip-duplicate
