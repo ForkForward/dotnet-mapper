@@ -82,6 +82,7 @@ CI runs the same comparison on every pull request that changes the library, its 
 
 - **Allocations are exact.** They do not depend on how busy the machine is, so an increase is always a real one.
 - **Timings are noisy on shared machines.** The fastest iteration of each side is compared, because other work on the machine only ever adds time. The benchmarks in `ReferenceBenchmarks` do not use the library, so both sides must measure the same there. When they do not, the run is reported as inconclusive instead of as a regression: run the job again.
+- **CI measures on two runners and believes a slowdown only when both see it.** The two sides are two separately compiled assemblies of the same code, and on some machines the JIT lays one of them out less favourably; a single runner then reports one benchmark 10 % slower that another runner does not see at all. A slowdown on one runner only is shown as "not confirmed" and does not fail the check. More allocations on either runner do. Locally, `./Benchmark.ps1 -MergeVerdicts a/verdict.json, b/verdict.json` judges two runs the same way.
 - **Startup benchmarks are checked for allocations only.** The time to build a configuration varies too much between runs to be a gate; it is shown for information.
 
 New benchmarks go into `src/Benchmark`. The same sources are compiled against the baseline package, so a benchmark can only use API that the last release already has.
