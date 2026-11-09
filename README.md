@@ -1,29 +1,55 @@
-![AutoMapper](https://s3.amazonaws.com/automapper/logo.png)
+<p align="center">
+  <img src="assets/brand/banner.png" alt="ForkForward.Mapper: community fork of AutoMapper, MIT, developed with AI tools" width="640">
+</p>
 
-[![CI](https://github.com/automapper/automapper/workflows/CI/badge.svg)](https://github.com/AutoMapper/AutoMapper/actions?query=workflow%3ACI)
-[![NuGet](http://img.shields.io/nuget/vpre/AutoMapper.svg?label=NuGet)](https://www.nuget.org/packages/AutoMapper/)
-[![MyGet (dev)](https://img.shields.io/myget/automapperdev/vpre/AutoMapper.svg?label=MyGet)](https://myget.org/feed/automapperdev/package/nuget/AutoMapper)
-[![Documentation Status](https://readthedocs.org/projects/automapper/badge/?version=stable)](https://docs.automapper.org/en/stable/?badge=stable)
+# ForkForward.Mapper
 
+**ForkForward.Mapper is a community fork of [AutoMapper](https://github.com/AutoMapper/AutoMapper.Archive)**, the convention-based object-object mapper for .NET created by [Jimmy Bogard](https://jimmybogard.com). It continues the last MIT-licensed code of AutoMapper and keeps it building on current .NET. Changes in this fork are written by AI coding tools and automation; people review them and are responsible for releases.
 
-### What is AutoMapper?
+> [!IMPORTANT]
+> This is **not** the official AutoMapper. ForkForward is an independent project. It is not affiliated with, sponsored by, or endorsed by Jimmy Bogard, Lucky Penny Software, or the AutoMapper project. The name "AutoMapper" appears here only to say where the code comes from.
+> The official AutoMapper is at [automapper.io](https://automapper.io).
 
-AutoMapper is a simple little library built to solve a deceptively complex problem - getting rid of code that mapped one object to another. This type of code is rather dreary and boring to write, so why not invent a tool to do it for us?
+## Where the code comes from
 
-This is the main repository for AutoMapper, but there's more:
+| | |
+|---|---|
+| Original project | AutoMapper, by Jimmy Bogard, Lucian Bargaoanu and the AutoMapper contributors |
+| Source repository | [AutoMapper/AutoMapper.Archive](https://github.com/AutoMapper/AutoMapper.Archive) (archived by its owners) |
+| Forked from | commit [`92816585`](https://github.com/AutoMapper/AutoMapper.Archive/commit/928165859deaf9a59c4433771b3c58a9536284dd) of 2025-06-20, which is release `v14.0.0` plus 3 commits |
+| Licence of the original code | MIT, Copyright (c) 2010 Jimmy Bogard |
+| Licence of this fork | MIT, unchanged ([LICENSE.txt](LICENSE.txt)) |
+| What this fork changed | `git log 92816585..HEAD`, summarised in [NOTICE.md](NOTICE.md) |
 
-* [Collection Extensions](https://github.com/AutoMapper/AutoMapper.Collection)
-* [Expression Mapping](https://github.com/AutoMapper/AutoMapper.Extensions.ExpressionMapping)
-* [EF6 Extensions](https://github.com/AutoMapper/AutoMapper.EF6)
-* [IDataReader/Record Extensions](https://github.com/AutoMapper/AutoMapper.Data)
-* [Enum Extensions](https://github.com/AutoMapper/AutoMapper.Extensions.EnumMapping)
+All the design, the API and nearly all of the code are the work of the original authors. This fork adds maintenance on top.
 
-### How do I get started?
+## Why this fork exists
 
-First, configure AutoMapper to know what types you want to map, in the startup of your application:
+The official AutoMapper continues at [LuckyPennySoftware/AutoMapper](https://github.com/LuckyPennySoftware/AutoMapper) under the Reciprocal Public License 1.5 or a commercial licence. The MIT-licensed code was archived at the commit above. The MIT licence lets anyone keep that code alive, and that is all this fork does: it keeps the MIT line compiling, tested and compatible as .NET moves on.
+
+If you want new features from the original authors, or commercial support, use the official AutoMapper.
+
+## How this fork is developed
+
+- Changes are produced with AI coding tools and automation such as Dependabot.
+- A person reviews every change before it is merged and decides what gets released.
+- No code is taken from AutoMapper releases published after the fork point, or from any source whose licence does not allow it.
+
+The full rules are in [AI_POLICY.md](AI_POLICY.md).
+
+## Status
+
+- No NuGet package is published yet. Until then, build from source. The plan is in [ROADMAP.md](ROADMAP.md).
+- The package will be called `ForkForward.Mapper`.
+- Namespaces and the assembly name are still `AutoMapper`, so code written for AutoMapper 14 compiles without changes.
+- Every build compares the public API with the official AutoMapper 14.0.0 package and writes the differences to [ApiCompatBaseline.txt](src/AutoMapper/ApiCompatBaseline.txt). An API change therefore shows up in review as a change to that file.
+
+## Using it
+
+Configure the mapper once at startup:
 
 ```csharp
-var configuration = new MapperConfiguration(cfg => 
+var configuration = new MapperConfiguration(cfg =>
 {
     cfg.CreateMap<Foo, FooDto>();
     cfg.CreateMap<Bar, BarDto>();
@@ -32,45 +58,47 @@ var configuration = new MapperConfiguration(cfg =>
 #if DEBUG
 configuration.AssertConfigurationIsValid();
 #endif
-// use DI (http://docs.automapper.org/en/latest/Dependency-injection.html) or create the mapper yourself
 var mapper = configuration.CreateMapper();
 ```
-Then in your application code, execute the mappings:
+
+Then map:
 
 ```csharp
 var fooDto = mapper.Map<FooDto>(foo);
 var barDto = mapper.Map<BarDto>(bar);
 ```
 
-Check out the [getting started guide](https://automapper.readthedocs.io/en/latest/Getting-started.html). When you're done there, the [wiki](https://automapper.readthedocs.io/en/latest/) goes in to the nitty-gritty details. If you have questions, you can post them to [Stack Overflow](https://stackoverflow.com/questions/tagged/automapper) or in our [Gitter](https://gitter.im/AutoMapper/AutoMapper).
+The documentation inherited from AutoMapper is in [docs/source](docs/source), starting with [Getting started](docs/source/Getting-started.md). It still describes this code, because the API has not changed.
 
-### Where can I get it?
+## Building
 
-First, [install NuGet](http://docs.nuget.org/docs/start-here/installing-nuget). Then, install [AutoMapper](https://www.nuget.org/packages/AutoMapper/) from the package manager console:
+The project builds and is tested on Windows and on Linux. You need the .NET SDK 9 or newer and the .NET 9 runtime, because the tests target `net9.0`.
 
-```
-PM> Install-Package AutoMapper
-```
-Or from the .NET CLI as:
-```
-dotnet add package AutoMapper
+```powershell
+./Build.ps1
 ```
 
-### Do you have an issue?
+This builds the solution, runs all tests and packs `ForkForward.Mapper` into `artifacts/`. It runs under PowerShell on both systems.
 
-First check if it's already fixed by trying the [MyGet build](https://automapper.readthedocs.io/en/latest/The-MyGet-build.html).
+The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere else, point them at a server with `FORKFORWARD_TEST_SQLSERVER`; see [CONTRIBUTING.md](CONTRIBUTING.md#building).
 
-You might want to know exactly what [your mapping does](https://automapper.readthedocs.io/en/latest/Understanding-your-mapping.html) at runtime.
+## Related repositories
 
-If you're still running into problems, file an issue above.
+| Repository | What it is |
+|---|---|
+| [dotnet-mapper](https://github.com/ForkForward/dotnet-mapper) | This repository: the mapper, including dependency injection support (`services.AddAutoMapper(...)`) |
+| [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) | Historical, archived copy of AutoMapper.Extensions.Microsoft.DependencyInjection. Its code is part of this repository, so nothing is developed or released there. |
 
-### License, etc.
+## Reporting problems and contributing
 
-This project has adopted the code of conduct defined by the Contributor Covenant to clarify expected behavior in our community.
-For more information see the [.NET Foundation Code of Conduct](https://dotnetfoundation.org/code-of-conduct).
+Open an issue in this repository for bugs in this fork. Do not report them to the original AutoMapper project; its maintainers are not responsible for this code. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
-AutoMapper is Copyright &copy; 2009 [Jimmy Bogard](https://jimmybogard.com) and other contributors under the [MIT license](https://github.com/AutoMapper/AutoMapper?tab=MIT-1-ov-file#MIT-1-ov-file).
+## About the logo
 
-### .NET Foundation
+The red node is the origin: it uses the red of the AutoMapper logo. The two arrows are the code moving forward from there. The mark is new artwork; the original AutoMapper logo is not used.
 
-This project is supported by the [.NET Foundation](https://dotnetfoundation.org).
+## Licence and credits
+
+ForkForward.Mapper is released under the [MIT licence](LICENSE.txt), the same licence the original code was published under.
+
+AutoMapper is Copyright (c) 2010 Jimmy Bogard and other contributors. Thank you to them for building it and for publishing it as open source. Modifications made in this fork are Copyright (c) 2026 ForkForward contributors and are released under the same MIT terms. Details are in [NOTICE.md](NOTICE.md).

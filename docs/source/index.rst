@@ -1,7 +1,20 @@
-AutoMapper
-==========
+ForkForward.Mapper
+==================
 
 A convention-based object-object mapper.
+
+.. important::
+
+   ForkForward.Mapper is a community fork of `AutoMapper <https://automapper.io>`_,
+   continued from the last MIT-licensed AutoMapper code (14.0.0). This documentation
+   was written by Jimmy Bogard and the AutoMapper contributors and is inherited from
+   the original project. It still describes this code, because the API and the
+   ``AutoMapper`` namespace have not changed, which is why the pages below keep
+   calling the library AutoMapper.
+
+   ForkForward is an independent project and is not affiliated with or endorsed by
+   the original authors. Pages that mention the MyGet feed, Gitter or the official
+   NuGet package describe the original project, not this fork.
 
 AutoMapper uses a fluent configuration API to define an object-object
 mapping strategy. AutoMapper uses a convention-based matching algorithm

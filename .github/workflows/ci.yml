@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -14,25 +15,53 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    name: build (${{ matrix.os }})
     strategy:
       fail-fast: false
-    runs-on: ubuntu-latest
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        # MinVer computes the version from the tags, so it needs the full history.
         fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # 10.0 builds the solution; 9.0 is the runtime the tests target.
+        dotnet-version: |
+          9.0.x
+          10.0.x
+    # The integration tests need a SQL Server. On Windows that is LocalDB.
+    - name: Install SQL Server LocalDB (Windows)
+      if: runner.os == 'Windows'
+      run: ./Setup.ps1
+      shell: pwsh
+    # LocalDB does not exist on Linux, so the tests use SQL Server in a container there.
+    # ACCEPT_EULA=Y accepts the Microsoft SQL Server licence terms for that container.
+    # The password is generated for this run and exists only on the runner.
+    - name: Start SQL Server (Linux)
+      if: runner.os == 'Linux'
+      shell: pwsh
+      run: |
+        $password = 'Ff1!' + [guid]::NewGuid().ToString('N')
+        docker run --detach --name sqlserver --publish 1433:1433 --env ACCEPT_EULA=Y --env "MSSQL_SA_PASSWORD=$password" mcr.microsoft.com/mssql/server:2022-latest
+        if ($LASTEXITCODE -ne 0) { throw 'Could not start the SQL Server container' }
+        "FORKFORWARD_TEST_SQLSERVER=Server=localhost,1433;User Id=sa;Password=$password;TrustServerCertificate=True" >> $env:GITHUB_ENV
+        foreach ($attempt in 1..60) {
+          if ((docker logs sqlserver 2>&1 | Out-String) -match 'SQL Server is now ready for client connections') { return }
+          Start-Sleep -Seconds 2
+        }
+        docker logs sqlserver
+        throw 'SQL Server did not become ready in time'
     - name: Build and Test
       run: ./Build.ps1
       shell: pwsh
-#    - name: Push to MyGet
-#      env:
-#        NUGET_URL: https://www.myget.org/F/automapperdev/api/v3/index.json
-#        NUGET_API_KEY: ${{ secrets.MYGET_CI_API_KEY }}
-#      run: ./Push.ps1
-#      shell: pwsh
     - name: Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
-        name: artifacts
+        name: artifacts-${{ matrix.os }}
         path: artifacts/**/*

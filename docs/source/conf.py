@@ -2,9 +2,11 @@
 
 # -- Project information
 
-project = 'AutoMapper'
-copyright = '2024, Jimmy Bogard'
-author = 'Jimmy Bogard'
+# This documentation is inherited from AutoMapper (MIT, Copyright (c) Jimmy Bogard and contributors).
+# ForkForward.Mapper is a community fork of AutoMapper; see NOTICE.md in the repository root.
+project = 'ForkForward.Mapper'
+copyright = '2010 Jimmy Bogard and AutoMapper contributors; modifications 2026 ForkForward contributors'
+author = 'Jimmy Bogard and AutoMapper contributors; ForkForward contributors'
 
 # -- General configuration
 
@@ -29,7 +31,7 @@ templates_path = ['_templates']
 
 html_theme = 'sphinx_rtd_theme'
 html_theme_options = {
-    'logo_only': True,
+    'logo_only': False,
     'display_version': False
 }
 html_logo = 'img/logo.png'

@@ -27,7 +27,12 @@ public class DropCreateDatabaseAlways<TContext> : IInitializer where TContext : 
 }
 public abstract class LocalDbContext : DbContext
 {
+    // SQL Server LocalDB exists only on Windows. To run these tests on another system, or against another server,
+    // set FORKFORWARD_TEST_SQLSERVER to a SQL Server connection string without a database name, for example
+    // "Server=localhost,1433;User Id=sa;Password=...;TrustServerCertificate=True".
+    static readonly string Server = Environment.GetEnvironmentVariable("FORKFORWARD_TEST_SQLSERVER") is { Length: > 0 } server ?
+        server.TrimEnd(';') : @"Data Source=(localdb)\mssqllocaldb;Integrated Security=True";
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSqlServer(
-        @$"Data Source=(localdb)\mssqllocaldb;Integrated Security=True;MultipleActiveResultSets=True;Database={GetType()};Connection Timeout=300",
+        $"{Server};MultipleActiveResultSets=True;Database={GetType()};Connection Timeout=300",
         o => o.EnableRetryOnFailure(maxRetryCount: 10).CommandTimeout(120));
 }
