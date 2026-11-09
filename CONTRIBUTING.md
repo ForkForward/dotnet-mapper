@@ -26,13 +26,22 @@ By opening a pull request you confirm that you have the right to submit the chan
 
 ## Building
 
-The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET SDK 9 or newer and the .NET 9 runtime.
+The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET SDK 9.0.200 or newer, the first version that reads the `.slnx` solution format, and the .NET 9 runtime. The solution file is `AutoMapper.slnx`.
 
 ```powershell
 ./Build.ps1
 ```
 
-This builds the solution, runs all tests and packs the library into `artifacts/`. On Linux the build also needs `bash`, `curl` and `unzip`, to download the AutoMapper package the API is compared with.
+This builds the solution, runs all tests and packs the library. All build output goes to `artifacts/`, not to `bin` and `obj` folders next to each project:
+
+| Folder | Contents |
+|---|---|
+| `artifacts/bin/<project>/<configuration>` | compiled assemblies |
+| `artifacts/obj/<project>` | intermediate files |
+| `artifacts/TestResults` | test results (`.trx`) |
+| `artifacts/package/release` | the NuGet package and its symbols |
+
+On Linux the build also needs `bash`, `curl` and `unzip`, to download the AutoMapper package the API is compared with.
 
 The integration tests need a SQL Server:
 

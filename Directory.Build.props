@@ -6,6 +6,9 @@
     <Company>ForkForward</Company>
     <Product>ForkForward.Mapper (fork of AutoMapper)</Product>
     <Copyright>Copyright (c) 2010 Jimmy Bogard and AutoMapper contributors. Modifications copyright (c) 2026 ForkForward contributors.</Copyright>
+    <!-- All build output goes to /artifacts instead of bin and obj folders next to each project:
+         artifacts/bin/<project>/<configuration>, artifacts/obj/<project>, artifacts/package/<configuration>. -->
+    <UseArtifactsOutput>true</UseArtifactsOutput>
     <LangVersion>latest</LangVersion>
     <NoWarn>$(NoWarn);CS1701;CS1702;CS1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>

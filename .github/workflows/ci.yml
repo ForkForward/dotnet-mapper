@@ -64,4 +64,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: artifacts-${{ matrix.os }}
-        path: artifacts/**/*
+        # Test results and packages only; artifacts/bin and artifacts/obj are build output.
+        path: |
+          artifacts/TestResults/**
+          artifacts/package/**
