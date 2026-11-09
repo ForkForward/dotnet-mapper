@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Official AutoMapper
+    url: https://automapper.io
+    about: ForkForward.Mapper is an independent fork. For the official AutoMapper, its newer versions and commercial support, go here.
+  - name: How do I use the mapper?
+    url: https://stackoverflow.com/questions/tagged/automapper
+    about: Usage questions are best asked on Stack Overflow. The API of this fork is the API of AutoMapper 14.

@@ -1,72 +1,46 @@
-# How to contribute
+# Contributing to ForkForward.Mapper
 
-The easiest way to contribute is to open an issue and start a discussion.
-Then we can decide if and how a feature or a change could be implemented and if you should submit a pull requests with code changes.
+ForkForward.Mapper is a community fork of AutoMapper. It is maintained with AI coding tools, and reviewed and released by people. Read [AI_POLICY.md](AI_POLICY.md) first; it is short and it is the part that differs from other projects.
 
-Also read this first: [Being a good open source citizen](https://hackernoon.com/being-a-good-open-source-citizen-9060d0ab9732#.x3hocgw85)
+## What helps most
 
-## General feedback and discussions
-Please start a discussion on the [core repo issue tracker](https://github.com/AutoMapper/AutoMapper/issues).
+- **A bug report with a reproduction.** Source and destination types, the mapping configuration, the call that fails, and what you expected. A failing test is ideal.
+- **A compatibility report.** If something that worked with AutoMapper 14.0.0 behaves differently here, that is a bug in this fork.
+- **A report that the build or the tests fail** on a current .NET SDK or operating system.
 
-## Platform
-AutoMapper is built using the RTM tooling that ships with the latest Visual Studio. This is the only configuration accepted.
+Report bugs in this fork here, in [ForkForward/dotnet-mapper](https://github.com/ForkForward/dotnet-mapper/issues). The original AutoMapper maintainers are not responsible for this code, so please do not send them issues about it.
 
-## Building from the command line
+## Pull requests
 
-Run the PowerShell script `Build.ps1` from the command line. This builds and runs tests.
+- Pull requests go to the `master` branch.
+- The change is produced with an AI coding tool, and the pull request says which one and what you checked yourself. The template asks for this.
+- Every bug fix and feature comes with a test.
+- The public API stays compatible with AutoMapper 14.0.0. If your change modifies `src/AutoMapper/ApiCompatBaseline.txt`, say why in the pull request.
+- Discuss larger changes in an issue before you start.
 
-## Bugs and feature requests?
-Please log a new issue in the appropriate GitHub repo:
+## Where code may come from
 
-* [Core](https://github.com/AutoMapper/AutoMapper)
-* [EF6 Extensions](https://github.com/AutoMapper/AutoMapper.EF6)
-* [IDataReader/Record Extensions](https://github.com/AutoMapper/AutoMapper.Data)
-* [Collection Extensions](https://github.com/AutoMapper/AutoMapper.Collection)
-* [Microsoft DI Extensions](https://github.com/AutoMapper/AutoMapper.Extensions.Microsoft.DependencyInjection)
+Do not copy anything from AutoMapper releases published after this fork was taken, or from the `LuckyPennySoftware/AutoMapper` repository. That code is under a different licence and cannot be used here, in any form: no code, tests, documentation, or ports of them. A fix that also exists there has to be written independently. The full rule is in [AI_POLICY.md](AI_POLICY.md#4-where-code-may-come-from).
 
-## Other discussions
-https://gitter.im/AutoMapper/AutoMapper
+By opening a pull request you confirm that you have the right to submit the change and that it can be released under the MIT licence.
 
-## Filing issues
-The best way to get your bug fixed is to be as detailed as you can be about the problem.
-Providing a minimal project with steps to reproduce the problem is ideal.
-Here are questions you can answer before you file a bug to make sure you're not missing any important information.
+## Building
 
-1. Did you read the [documentation](https://automapper.readthedocs.io/en/latest/)?
-2. Did you include the snippet of broken code in the issue?
-3. What are the *EXACT* steps to reproduce this problem (including source/destination types, mapping configuration and execution)?
+You need the .NET SDK 9 or newer and the .NET 9 runtime. The integration tests need SQL Server LocalDB, which exists only on Windows; `Setup.ps1` installs it.
 
-GitHub supports [markdown](https://github.github.com/github-flavored-markdown/), so when filing bugs make sure you check the formatting before clicking submit.
-
-## Contributing code and content
-You will need to sign a [Contributor License Agreement](https://cla.dotnetfoundation.org/) before submitting your pull request.
-
-Make sure you can build the code. Familiarize yourself with the project workflow and our coding conventions. If you don't know what a pull request is read this article: https://help.github.com/articles/using-pull-requests.
-
-**We only accept PRs to the master branch.**
-
-Before submitting a feature or substantial code contribution please discuss it with the team and ensure it follows the product roadmap. Here's a list of blog posts that are worth reading before doing a pull request:
-
-* [Open Source Contribution Etiquette](http://tirania.org/blog/archive/2010/Dec-31.html) by Miguel de Icaza
-* [Don't "Push" Your Pull Requests](http://www.igvita.com/2011/12/19/dont-push-your-pull-requests/) by Ilya Grigorik.
-* [10 tips for better Pull Requests](http://blog.ploeh.dk/2015/01/15/10-tips-for-better-pull-requests/) by Mark Seemann
-* [How to write the perfect pull request](https://github.com/blog/1943-how-to-write-the-perfect-pull-request) by GitHub
-
-Here's a few things you should always do when making changes to the code base:
-
-**Commit/Pull Request Format**
-
-```
-Summary of the changes (Less than 80 chars)
- - Detail 1
- - Detail 2
-
-#bugnumber (in this specific format)
+```powershell
+./Build.ps1
 ```
 
-**Tests**
+This builds the solution, runs all tests and packs the library into `artifacts/`.
 
--  Tests need to be provided for every bug/feature that is completed.
--  Tests only need to be present for issues that need to be verified by QA (e.g. not tasks).
--  If there is a scenario that is far too hard to test there does not need to be a test for it.
-  - "Too hard" is determined by the team as a whole.
+To run only the tests that need no database:
+
+```powershell
+dotnet test src/UnitTests
+dotnet test src/AutoMapper.DI.Tests
+```
+
+## Commit messages
+
+A short summary line, then what changed and why. Reference the issue number. Commits written by an AI tool carry a `Co-Authored-By` trailer naming the tool.

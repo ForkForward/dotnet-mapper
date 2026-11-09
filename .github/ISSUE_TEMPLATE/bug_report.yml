@@ -1,0 +1,62 @@
+name: Bug report
+description: Something in ForkForward.Mapper does not work, or behaves differently from AutoMapper 14.0.0
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the issue tracker of **ForkForward.Mapper**, a community fork of AutoMapper.
+        For the official AutoMapper, go to [automapper.io](https://automapper.io) instead.
+  - type: textarea
+    id: types
+    attributes:
+      label: Source and destination types
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: configuration
+    attributes:
+      label: Mapping configuration
+      description: The `MapperConfiguration` or the `CreateMap` calls involved.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The call to `Map` or `ProjectTo`, with the objects it is given. A failing test is ideal.
+      render: csharp
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behaviour
+      description: Include the exception message and stack trace if there is one.
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version
+      description: The ForkForward.Mapper version or commit, and the .NET version. For `ProjectTo`, also the EF Core version.
+    validations:
+      required: true
+  - type: dropdown
+    id: regression
+    attributes:
+      label: Did this work with AutoMapper 14.0.0?
+      options:
+        - "Yes, it worked there and fails here"
+        - "No, it fails there too"
+        - "I have not checked"
+    validations:
+      required: true
