@@ -1,10 +1,17 @@
-# Dependabot: cotygodniowe PR-y z nowszymi wersjami zależności (minor i patch, jeden zbiorczy PR
-# na ekosystem) oraz poprawki bezpieczeństwa z alertów, też zebrane w jeden PR.
-# Wersje major są pominięte: to migracje, nie podbicia — robi się je ręcznie.
+# Dependabot: weekly pull requests with newer dependency versions (minor and patch, one grouped
+# pull request per ecosystem) and security fixes from alerts, also grouped into one pull request.
+# Major versions are left out: they are migrations, not updates, and are done by hand.
+#
+# This repository is a fork, and on a fork this file alone does nothing: GitHub runs version
+# updates there only after someone enables them in the repository settings, under
+# Settings > Advanced Security > Dependabot > Dependabot version updates > Enable.
+#
+# Every Dependabot pull request goes through the same checks as any other: CI on Windows and
+# Ubuntu, the dependency review, and the benchmark comparison when it touches the library.
 version: 2
 updates:
   - package-ecosystem: nuget
-    directories: ["/", "/src/AutoMapper", "/src/AutoMapper.DI.Tests", "/src/Benchmark", "/src/IntegrationTests", "/src/TestApp", "/src/UnitTests"]
+    directories: ["/", "/src/AutoMapper", "/src/AutoMapper.DI.Tests", "/src/Benchmark", "/src/Benchmark.Baseline", "/src/IntegrationTests", "/src/TestApp", "/src/UnitTests"]
     schedule:
       interval: weekly
       day: monday
@@ -21,6 +28,8 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # The official AutoMapper is never a dependency to update: later versions are under another licence.
+      - dependency-name: "AutoMapper"
 
   - package-ecosystem: pip
     directories: ["/docs"]
