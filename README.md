@@ -76,7 +76,7 @@ The documentation inherited from AutoMapper is in [docs/source](docs/source), st
 
 ## Building
 
-The project builds and is tested on Windows and on Linux. You need the .NET SDK 9.0.200 or newer, the first version that reads the `.slnx` solution format, and the .NET 9 runtime, because the tests target `net9.0`.
+The project builds and is tested on Windows and on Linux. You need the .NET 10 SDK. The library targets `net8.0`; the tests target `net10.0`.
 
 ```powershell
 ./Build.ps1

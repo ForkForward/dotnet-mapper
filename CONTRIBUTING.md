@@ -26,7 +26,7 @@ By opening a pull request you confirm that you have the right to submit the chan
 
 ## Building
 
-The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET SDK 9.0.200 or newer, the first version that reads the `.slnx` solution format, and the .NET 9 runtime. The solution file is `AutoMapper.slnx`.
+The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET 10 SDK. The solution file is `AutoMapper.slnx`. The library targets `net8.0`; the tests, the benchmark and the sample app target `net10.0`.
 
 ```powershell
 ./Build.ps1
