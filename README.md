@@ -82,6 +82,13 @@ This builds the solution, runs all tests and packs `ForkForward.Mapper` into `ar
 
 The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere else, point them at a server with `FORKFORWARD_TEST_SQLSERVER`; see [CONTRIBUTING.md](CONTRIBUTING.md#building).
 
+## Related repositories
+
+| Repository | What it is |
+|---|---|
+| [dotnet-mapper](https://github.com/ForkForward/dotnet-mapper) | This repository: the mapper, including dependency injection support (`services.AddAutoMapper(...)`) |
+| [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) | Historical copy of AutoMapper.Extensions.Microsoft.DependencyInjection. Its code is part of this repository, so nothing is developed or released there. |
+
 ## Reporting problems and contributing
 
 Open an issue in this repository for bugs in this fork. Do not report them to the original AutoMapper project; its maintainers are not responsible for this code. See [CONTRIBUTING.md](CONTRIBUTING.md).
