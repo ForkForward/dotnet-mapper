@@ -30,6 +30,9 @@ updates:
         update-types: ["version-update:semver-major"]
       # The official AutoMapper is never a dependency to update: later versions are under another licence.
       - dependency-name: "AutoMapper"
+      # The API comparison tool stays pinned. It exists only to compare the public API with AutoMapper
+      # 14.0.0, and a newer version applies other rules, so an update would change what counts as compatible.
+      - dependency-name: "Microsoft.DotNet.ApiCompat"
 
   - package-ecosystem: pip
     directories: ["/docs"]

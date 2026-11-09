@@ -65,11 +65,6 @@ $invariant = [System.Globalization.CultureInfo]::InvariantCulture
 $referenceType = 'ReferenceBenchmarks'
 $allocationsOnlyTypes = @('StartupBenchmarks')
 
-function Invoke-Dotnet([string[]]$arguments) {
-    & dotnet @arguments | Out-Host
-    return $LASTEXITCODE
-}
-
 function Format-Time([double]$nanoseconds) {
     if ($nanoseconds -ge 1e9) { return ($nanoseconds / 1e9).ToString('0.00', $invariant) + ' s' }
     if ($nanoseconds -ge 1e6) { return ($nanoseconds / 1e6).ToString('0.00', $invariant) + ' ms' }
@@ -135,7 +130,8 @@ $OutputDirectory = (Resolve-Path $OutputDirectory).Path
 if (-not $CompareOnly) {
     foreach ($side in $sides.Keys) {
         Write-Host "== Building $side"
-        if ((Invoke-Dotnet @('build', $sides[$side], '-c', 'Release', '--nologo', '-v', 'q')) -ne 0) {
+        & dotnet build "$($sides[$side])" -c Release --nologo -v q
+        if ($LASTEXITCODE -ne 0) {
             Write-Host "Building the $side benchmarks failed."
             exit 3
         }
@@ -163,10 +159,19 @@ if (-not $CompareOnly) {
         if ($round % 2 -eq 0) { [array]::Reverse($order) }
         foreach ($side in $order) {
             Write-Host "== Round $round of $Rounds, $side"
-            $arguments = @('run', '-c', 'Release', '--no-build', '--project', $sides[$side], '--',
-                '--filter', $Filter, '--artifacts', (Join-Path $OutputDirectory "$side/round-$round"))
-            if ((Invoke-Dotnet $arguments) -ne 0) {
+            $roundDirectory = Join-Path $OutputDirectory "$side/round-$round"
+            # The arguments are written out in quotes, not passed as an array or a bare variable. On Linux
+            # and macOS PowerShell replaces an unquoted argument that has wildcards with the names of the
+            # matching files, like a shell does, also when it comes from a variable: the filter * became
+            # the list of files in this folder, and no benchmark matched it.
+            & dotnet run -c Release --no-build --project "$($sides[$side])" -- --filter "$Filter" --artifacts "$roundDirectory"
+            if ($LASTEXITCODE -ne 0) {
                 Write-Host "Running the $side benchmarks failed."
+                exit 3
+            }
+            # BenchmarkDotNet exits with 0 when the filter matches nothing.
+            if (-not (Get-ChildItem -Path $roundDirectory -Recurse -Filter '*-report-full.json' -ErrorAction SilentlyContinue)) {
+                Write-Host "The $side benchmarks measured nothing. Does the filter '$Filter' match a benchmark?"
                 exit 3
             }
         }
