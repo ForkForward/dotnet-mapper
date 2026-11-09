@@ -7,6 +7,7 @@ on:
   pull_request:
     branches:
       - master
+  workflow_dispatch:
 permissions:
   contents: read
 concurrency:
@@ -14,24 +15,29 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    strategy:
-      fail-fast: false
-    runs-on: ubuntu-latest
+    # The integration tests need SQL Server LocalDB, which exists only on Windows.
+    runs-on: windows-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        # MinVer computes the version from the tags, so it needs the full history.
         fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # 10.0 builds the solution; 9.0 is the runtime the tests target.
+        dotnet-version: |
+          9.0.x
+          10.0.x
+    - name: Install SQL Server LocalDB
+      run: ./Setup.ps1
+      shell: pwsh
     - name: Build and Test
       run: ./Build.ps1
       shell: pwsh
-#    - name: Push to MyGet
-#      env:
-#        NUGET_URL: https://www.myget.org/F/automapperdev/api/v3/index.json
-#        NUGET_API_KEY: ${{ secrets.MYGET_CI_API_KEY }}
-#      run: ./Push.ps1
-#      shell: pwsh
     - name: Artifacts
+      if: always()
       uses: actions/upload-artifact@v4
       with:
         name: artifacts

@@ -1,37 +1,38 @@
 name: Release
 
+# Builds, tests and packs ForkForward.Mapper for a version tag such as v14.0.1.
+# Publishing to NuGet is switched off on purpose: see ROADMAP.md, phase 2.
+# The package is attached to the workflow run as an artifact and nothing else happens.
 on:
   push:
     tags:
-    - '*.*.*'
+    - 'v*.*.*'
 permissions:
   contents: read
 
 jobs:
   build:
-    strategy:
-      fail-fast: false
+    # The integration tests need SQL Server LocalDB, which exists only on Windows.
     runs-on: windows-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v4
       with:
+        # MinVer computes the version from the tags, so it needs the full history.
         fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        # 10.0 builds the solution; 9.0 is the runtime the tests target.
+        dotnet-version: |
+          9.0.x
+          10.0.x
+    - name: Install SQL Server LocalDB
+      run: ./Setup.ps1
+      shell: pwsh
     - name: Build and Test
       run: ./Build.ps1
       shell: pwsh
-#    - name: Push to MyGet
-#      env:
-#        NUGET_URL: https://www.myget.org/F/automapperdev/api/v3/index.json
-#        NUGET_API_KEY: ${{ secrets.MYGET_CI_API_KEY }}
-#      run: ./Push.ps1
-#      shell: pwsh
-#    - name: Push to NuGet
-#      env:
-#        NUGET_URL: https://api.nuget.org/v3/index.json
-#        NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-#      run: ./Push.ps1
-#      shell: pwsh
     - name: Artifacts
       uses: actions/upload-artifact@v4
       with:
