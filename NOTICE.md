@@ -42,7 +42,7 @@ Summary by area:
 
 - **Identity:** package renamed to `ForkForward.Mapper`; new logo; README, contribution guide and documentation headers rewritten to state the origin of the code.
 - **Removed claims that do not apply to the fork:** .NET Foundation support, the Contributor License Agreement, the original authors' sponsorship links, the original package feeds.
-- **Build:** continuous integration runs on Windows and on Ubuntu and installs its .NET SDKs explicitly; the integration tests can use any SQL Server, not only LocalDB; the tests compile with the .NET 10 SDK.
+- **Build:** continuous integration runs on Windows and on Ubuntu with the .NET 10 SDK; the integration tests can use any SQL Server, not only LocalDB; the tests, the benchmark and the sample app target .NET 10; the solution uses the `.slnx` format and the artifacts output layout.
 - **Maintenance:** Dependabot configuration for dependency updates.
 
 No public API of the library has been changed.

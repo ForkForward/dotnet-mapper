@@ -18,7 +18,9 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 
 - [ ] Work through the Dependabot updates
 - [ ] Make the API comparison a hard gate: fail the build on any difference from AutoMapper 14.0.0 that is not already in `ApiCompatBaseline.txt`
-- [ ] Decide which .NET versions the library and the tests target, and move the tests to a supported runtime
+- [x] Tests, benchmark and sample app target `net10.0`; CI builds with the .NET 10 SDK only
+- [x] Solution in the `.slnx` format; build output in the artifacts layout
+- [ ] Decide which .NET versions the library targets (today `net8.0`)
 - [ ] Review the inherited documentation for references to infrastructure that the fork does not have (the MyGet feed, Gitter)
 
 ## Phase 2: first release of `ForkForward.Mapper`

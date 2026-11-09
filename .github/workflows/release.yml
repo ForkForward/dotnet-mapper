@@ -27,10 +27,8 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        # 10.0 builds the solution; 9.0 is the runtime the tests target.
-        dotnet-version: |
-          9.0.x
-          10.0.x
+        # The .NET 10 SDK builds everything, and the tests run on the .NET 10 runtime it brings.
+        dotnet-version: 10.0.x
     - name: Install SQL Server LocalDB
       run: ./Setup.ps1
       shell: pwsh
@@ -42,8 +40,8 @@ jobs:
       with:
         name: packages
         path: |
-          artifacts/*.nupkg
-          artifacts/*.snupkg
+          artifacts/package/release/*.nupkg
+          artifacts/package/release/*.snupkg
         if-no-files-found: error
 
   publish:
