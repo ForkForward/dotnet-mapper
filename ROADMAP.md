@@ -23,7 +23,7 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 
 ## Phase 2: first release of `ForkForward.Mapper`
 
-The package cannot be published until these are decided.
+The first preview, `14.1.0-preview.2`, is on nuget.org. It was published with the current state of the three decisions below: `AutoMapper` namespace and assembly name, the original signing key, version numbers continuing from 14. A stable version is not published until a maintainer has confirmed them here.
 
 1. **Decision needed: namespace and assembly name.**
    Today both are still `AutoMapper`. Keeping them means existing code and third-party libraries built against AutoMapper 14 keep working, and switching is a one-line change of the package reference. Renaming them makes the fork impossible to confuse with the original, and forces every user to edit their code. Current state: kept.
@@ -31,12 +31,12 @@ The package cannot be published until these are decided.
    The assembly is signed with the `AutoMapper.snk` key from the original repository, which gives it the same assembly identity as the original. A new key gives the fork its own identity and breaks binary compatibility with libraries compiled against the original. This follows from decision 1.
 3. **Decision needed: version numbers.**
    Continue from 14.x, which signals compatibility with AutoMapper 14, or start again at 1.0 and document "based on AutoMapper 14.0.0". Today MinVer computes `14.0.1-preview` from the inherited `v14.0.0` tag.
-4. Publishing from the release workflow. The workflow publishes through NuGet Trusted Publishing, with no stored API key. It needs three things outside this repository: a Trusted Publishing policy on nuget.org, owned by the `ForkForward` organization, for `ForkForward/dotnet-mapper`, workflow file `release.yml`, environment `release`; the `NUGET_USER` secret with the nuget.org user name of the person who created that policy (not the organization); and, recommended, required reviewers on the `release` environment. Nothing is published until a version tag is pushed.
+4. Publishing from the release workflow: working since `14.1.0-preview.2`. The workflow publishes through NuGet Trusted Publishing, with no stored API key. It needs three things outside this repository: a Trusted Publishing policy on nuget.org, owned by the `ForkForward` organization, for `ForkForward/dotnet-mapper`, workflow file `release.yml`, environment `release`; the `NUGET_USER` secret with the nuget.org user name of the person who created that policy (not the organization); and, recommended, required reviewers on the `release` environment. Nothing is published until a version tag is pushed.
 5. Reserve the `ForkForward` prefix on nuget.org.
 6. Write a NuGet-specific readme and a short guide: "moving from AutoMapper 14 to ForkForward.Mapper".
 
 ## Phase 3: beyond the first release
 
 - [ ] Publish the documentation
-- [x] [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) is marked as historical and archived on GitHub: dependency injection support has been part of the main library since before the fork point (`AddAutoMapper` lives in `src/AutoMapper/ServiceCollectionExtensions.cs`)
+- [x] No separate dependency injection package or repository: `AddAutoMapper` has been part of the main library since before the fork point (`src/AutoMapper/ServiceCollectionExtensions.cs`)
 - [ ] Organisation profile with a catalogue of ForkForward projects by technology

@@ -39,9 +39,13 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
 
 ## Status
 
-- No NuGet package is published yet. Until then, build from source. The plan is in [ROADMAP.md](ROADMAP.md).
-- The package will be called `ForkForward.Mapper`.
-- Namespaces and the assembly name are still `AutoMapper`, so code written for AutoMapper 14 compiles without changes.
+- A preview is on nuget.org: [`ForkForward.Mapper`](https://www.nuget.org/packages/ForkForward.Mapper). There is no stable release yet. The plan is in [ROADMAP.md](ROADMAP.md).
+
+  ```
+  dotnet add package ForkForward.Mapper --prerelease
+  ```
+
+- Namespaces and the assembly name are still `AutoMapper`, so code written for AutoMapper 14 compiles without changes. Remove the reference to the official `AutoMapper` package when you add this one; both contain an `AutoMapper.dll`.
 - Every build compares the public API with the official AutoMapper 14.0.0 package and writes the differences to [ApiCompatBaseline.txt](src/AutoMapper/ApiCompatBaseline.txt). An API change therefore shows up in review as a change to that file.
 
 ## Using it
@@ -82,12 +86,11 @@ This builds the solution, runs all tests and packs `ForkForward.Mapper` into `ar
 
 The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere else, point them at a server with `FORKFORWARD_TEST_SQLSERVER`; see [CONTRIBUTING.md](CONTRIBUTING.md#building).
 
-## Related repositories
+## Dependency injection
 
-| Repository | What it is |
-|---|---|
-| [dotnet-mapper](https://github.com/ForkForward/dotnet-mapper) | This repository: the mapper, including dependency injection support (`services.AddAutoMapper(...)`) |
-| [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) | Historical, archived copy of AutoMapper.Extensions.Microsoft.DependencyInjection. Its code is part of this repository, so nothing is developed or released there. |
+Support for `Microsoft.Extensions.DependencyInjection` is built in: call `services.AddAutoMapper(...)`. There is no separate extension package.
+
+If your project references `AutoMapper.Extensions.Microsoft.DependencyInjection`, remove that reference together with the reference to `AutoMapper`, and add `ForkForward.Mapper`. Your `AddAutoMapper` calls stay as they are.
 
 ## Reporting problems and contributing
 
