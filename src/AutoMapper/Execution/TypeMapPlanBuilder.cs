@@ -315,7 +315,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     private Expression TryMemberMap(MemberMap memberMap, Expression memberMapExpression)
     {
         var newException = Call(MappingError, ExceptionParameter, Constant(memberMap));
-        _catches[0] = Catch(ExceptionParameter, Throw(newException, memberMapExpression.Type));
+        _catches[0] = CatchMappingError(memberMapExpression, newException);
         return TryCatch(memberMapExpression, _catches);
     }
     private Expression CreatePropertyMapFunc(MemberMap memberMap, Expression destination, MemberInfo destinationMember)

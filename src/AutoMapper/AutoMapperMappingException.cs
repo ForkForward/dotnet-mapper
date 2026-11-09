@@ -73,6 +73,23 @@ public class AutoMapperMappingException : Exception
     }
 #endif
 }
+/// <summary>
+/// The source object graph is nested deeper than the stack of the current thread allows. Thrown instead of
+/// letting the recursion end in a StackOverflowException, which cannot be caught and ends the process
+/// (CVE-2026-32933). Unlike other mapping errors it is not wrapped again at every level on the way up
+/// (see ExpressionBuilder.WrapsException): an exception as deep as the graph would be as unusable as the crash.
+/// </summary>
+internal sealed class SourceGraphTooDeepException : AutoMapperMappingException
+{
+    public SourceGraphTooDeepException(TypePair types, MemberMap memberMap)
+        : base("The source object graph is nested too deeply to be mapped on this thread: its stack is almost used up. " +
+               "Map it on a thread with a larger stack, set MaxDepth on the type map to stop at a fixed depth, or map the deep part by hand.",
+            null, types)
+    {
+        MemberMap = memberMap;
+        TypeMap = memberMap?.TypeMap;
+    }
+}
 public class DuplicateTypeMapConfigurationException(DuplicateTypeMapConfigurationException.TypeMapConfigErrors[] errors) : Exception
 {
     public TypeMapConfigErrors[] Errors { get; } = errors;

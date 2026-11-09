@@ -19,6 +19,66 @@ public static class ExpressionBuilder
     static readonly MethodCallExpression CheckContextCall = Expression.Call(
         typeof(ResolutionContext).GetStaticMethod(nameof(ResolutionContext.CheckContext)), ContextParameter);
     static readonly MethodInfo ContextMapMethod = typeof(ResolutionContext).GetInstanceMethod(nameof(ResolutionContext.MapInternal));
+    // The filter of the catch that wraps a mapping error; see WrapsException. A filter runs while the exception is
+    // still looking for its handler, so the levels it says no to are left in a single pass, without their handlers
+    // running; it costs nothing until an exception is thrown.
+    static readonly Expression WrapsExceptionCall = Expression.Call(typeof(ExpressionBuilder).GetStaticMethod(nameof(WrapsException)), ExceptionParameter);
+    /// <summary>
+    /// The catch that wraps a mapping error in an AutoMapperMappingException naming what was being mapped.
+    /// </summary>
+    /// <remarks>
+    /// It gets the filter only where the mapping can go back into the mapper, that is, where its expression uses the
+    /// context: a nested map, a collection of mapped elements, a resolver that is given the context. Only such a
+    /// catch can sit above the hundreds of levels of a deep source graph. The plain members that make up most of a
+    /// plan keep the catch they had, and the plan stays as small as it was.
+    /// </remarks>
+    internal static CatchBlock CatchMappingError(Expression mapped, Expression newException) =>
+        UsesContext(mapped) ?
+            Catch(ExceptionParameter, Throw(newException, mapped.Type), WrapsExceptionCall) :
+            Catch(ExceptionParameter, Throw(newException, mapped.Type));
+    static bool UsesContext(Expression expression)
+    {
+        ContextVisitor visitor = new();
+        visitor.Visit(expression);
+        return visitor.Found;
+    }
+    sealed class ContextVisitor : ExpressionVisitor
+    {
+        public bool Found;
+        public override Expression Visit(Expression node) => Found ? node : base.Visit(node);
+        protected override Expression VisitParameter(ParameterExpression node)
+        {
+            if (node == ContextParameter)
+            {
+                Found = true;
+            }
+            return node;
+        }
+    }
+    /// <summary>
+    /// How many times a mapping error is wrapped on its way up, each wrapper naming the member that was being mapped.
+    /// </summary>
+    /// <remarks>
+    /// Every wrapper means catching the exception, wrapping it and throwing it again, and in .NET the handler that
+    /// does that runs on top of the stack that has not been unwound yet. In a source graph a few hundred levels deep
+    /// that used up the rest of the stack and ended the process, even when the graph itself fit (CVE-2026-32933).
+    /// The exception about a source graph too deep for the stack is never wrapped: it is thrown when the stack is
+    /// almost used up, and wrapped at every level it would be as deep as the graph.
+    /// </remarks>
+    internal const int MaxExceptionWrappers = 8;
+    internal static bool WrapsException(Exception exception)
+    {
+        if (exception is SourceGraphTooDeepException)
+        {
+            return false;
+        }
+        var wrappers = 0;
+        for (var inner = exception; inner is AutoMapperMappingException && wrappers < MaxExceptionWrappers; inner = inner.InnerException)
+        {
+            wrappers++;
+        }
+        return wrappers < MaxExceptionWrappers;
+    }
     static readonly MethodInfo ArrayEmptyMethod = typeof(Array).GetStaticMethod(nameof(Array.Empty));
     static readonly ParameterExpression Disposable = Variable(typeof(IDisposable), "disposableEnumerator");
     static readonly ReadOnlyCollection<ParameterExpression> DisposableArray = Disposable.ToReadOnly();

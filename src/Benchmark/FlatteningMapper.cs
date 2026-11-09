@@ -25,6 +25,10 @@ static class Config
     {
         public ConstructorProfile() => CreateMap<Model11, Dto11>();
     }
+    class TreeProfile : Profile
+    {
+        public TreeProfile() => CreateMap<Category, CategoryDto>();
+    }
     class FlatteningProfile : Profile
     {
         public FlatteningProfile()
@@ -47,6 +51,7 @@ static class Config
         cfg.AddProfile(new DeepTypeProfile());
         cfg.AddProfile(new ComplexTypesProfile());
         cfg.AddProfile(new ConstructorProfile());
+        cfg.AddProfile(new TreeProfile());
         cfg.AddProfile(new FlatteningProfile());
     });
     private static IMapper CreateMapper() => CreateConfiguration().CreateMapper();
@@ -316,6 +321,40 @@ public class ManualComplexTypeMapper : IObjectToObjectMapper
         Array.Copy(_foo.IntArr, dest.IntArr, _foo.IntArr.Length);
         return dest;
     }
+}
+/// <summary>
+/// A type that contains itself. Its nodes are not inlined into one execution plan: each one goes back
+/// through the context and the mapper, which is the path that guards against graphs too deep for the stack.
+/// </summary>
+public class Category
+{
+    public string Name { get; set; }
+    public List<Category> Children { get; set; } = [];
+    // depth levels, width children per node: 1 + 3 + 9 + 27 = 40 nodes for (4, 3)
+    public static Category Create(int depth, int width, string name = "root")
+    {
+        var category = new Category { Name = name };
+        if (depth > 1)
+        {
+            for (var i = 0; i < width; i++)
+            {
+                category.Children.Add(Create(depth - 1, width, name + "/" + i));
+            }
+        }
+        return category;
+    }
+}
+public class CategoryDto
+{
+    public string Name { get; set; }
+    public List<CategoryDto> Children { get; set; }
+}
+public class TreeMapper : IObjectToObjectMapper
+{
+    private Category _tree;
+    public string Name => "Tree";
+    public void Initialize() => _tree = Category.Create(depth: 4, width: 3);
+    public object Map() => Config.Map<Category, CategoryDto>(_tree);
 }
 public class CtorMapper : IObjectToObjectMapper
 {
