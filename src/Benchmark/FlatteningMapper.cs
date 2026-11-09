@@ -42,18 +42,14 @@ static class Config
             CreateMap<Model10, Dto10>();
         }
     }
-    private static IMapper CreateMapper()
+    public static MapperConfiguration CreateConfiguration() => new(cfg =>
     {
-        var config = new MapperConfiguration(cfg =>
-        {
-            cfg.AddProfile(new DeepTypeProfile());
-            cfg.AddProfile(new ComplexTypesProfile());
-            cfg.AddProfile(new ConstructorProfile());
-            cfg.AddProfile(new FlatteningProfile());
-        });
-        //config.AssertConfigurationIsValid();
-        return config.CreateMapper();
-    }
+        cfg.AddProfile(new DeepTypeProfile());
+        cfg.AddProfile(new ComplexTypesProfile());
+        cfg.AddProfile(new ConstructorProfile());
+        cfg.AddProfile(new FlatteningProfile());
+    });
+    private static IMapper CreateMapper() => CreateConfiguration().CreateMapper();
     public static TDestination Map<TSource, TDestination>(TSource source) => Mapper.Map<TSource, TDestination>(source);
 }
 public class DeepTypeMapper : IObjectToObjectMapper

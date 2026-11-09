@@ -9,7 +9,11 @@
     <File Path=".editorconfig" />
     <File Path=".github/workflows/ci.yml" />
     <File Path=".github/workflows/release.yml" />
+    <File Path=".github/workflows/benchmark.yml" />
+    <File Path=".github/workflows/dependency-review.yml" />
+    <File Path=".github/dependabot.yml" />
     <File Path="AI_POLICY.md" />
+    <File Path="Benchmark.ps1" />
     <File Path="Build.ps1" />
     <File Path="CONTRIBUTING.md" />
     <File Path="Directory.Build.props" />
@@ -21,6 +25,9 @@
     <File Path="README.md" />
     <File Path="ROADMAP.md" />
     <File Path="Setup.ps1" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/Benchmark.Baseline/Benchmark.Baseline.csproj" />
   </Folder>
   <Project Path="src/AutoMapper.DI.Tests/AutoMapper.DI.Tests.csproj" />
   <Project Path="src/AutoMapper/AutoMapper.csproj" />
