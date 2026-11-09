@@ -87,7 +87,7 @@ The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere e
 | Repository | What it is |
 |---|---|
 | [dotnet-mapper](https://github.com/ForkForward/dotnet-mapper) | This repository: the mapper, including dependency injection support (`services.AddAutoMapper(...)`) |
-| [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) | Historical copy of AutoMapper.Extensions.Microsoft.DependencyInjection. Its code is part of this repository, so nothing is developed or released there. |
+| [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) | Historical, archived copy of AutoMapper.Extensions.Microsoft.DependencyInjection. Its code is part of this repository, so nothing is developed or released there. |
 
 ## Reporting problems and contributing
 

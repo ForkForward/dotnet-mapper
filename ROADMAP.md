@@ -11,7 +11,8 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 - [x] Tests compile and pass with the .NET 10 SDK
 - [x] CI on Windows (SQL Server LocalDB) and on Ubuntu (SQL Server in a container), with its SDKs installed explicitly
 - [x] CI green on GitHub on both systems
-- [ ] Repository settings: description, topics `forkforward`, `dotnet`, `object-mapping`, issues enabled, labels applied
+- [x] Repository description and topics `forkforward`, `dotnet`, `object-mapping`
+- [ ] Repository settings: issues enabled, labels applied
 
 ## Phase 1: keep it building
 
@@ -36,5 +37,5 @@ The package cannot be published until these are decided.
 ## Phase 3: beyond the first release
 
 - [ ] Publish the documentation
-- [ ] Mark [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) as historical and archive it on GitHub: dependency injection support has been part of the main library since before the fork point (`AddAutoMapper` lives in `src/AutoMapper/ServiceCollectionExtensions.cs`). The README there already points here; the change is waiting to be merged.
+- [x] [dotnet-mapper-extensions](https://github.com/ForkForward/dotnet-mapper-extensions) is marked as historical and archived on GitHub: dependency injection support has been part of the main library since before the fork point (`AddAutoMapper` lives in `src/AutoMapper/ServiceCollectionExtensions.cs`)
 - [ ] Organisation profile with a catalogue of ForkForward projects by technology
