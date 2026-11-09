@@ -31,8 +31,9 @@ The package cannot be published until these are decided.
    The assembly is signed with the `AutoMapper.snk` key from the original repository, which gives it the same assembly identity as the original. A new key gives the fork its own identity and breaks binary compatibility with libraries compiled against the original. This follows from decision 1.
 3. **Decision needed: version numbers.**
    Continue from 14.x, which signals compatibility with AutoMapper 14, or start again at 1.0 and document "based on AutoMapper 14.0.0". Today MinVer computes `14.0.1-preview` from the inherited `v14.0.0` tag.
-4. Reserve the `ForkForward` prefix on nuget.org and set up publishing from the release workflow. Publishing is switched off until then.
-5. Write a NuGet-specific readme and a short guide: "moving from AutoMapper 14 to ForkForward.Mapper".
+4. Publishing from the release workflow. The workflow publishes through NuGet Trusted Publishing, with no stored API key. It publishes as the nuget.org account `ForkForward` and needs two things outside this repository: a Trusted Publishing policy on nuget.org for `ForkForward/dotnet-mapper`, workflow file `release.yml`, environment `release`; and, recommended, required reviewers on the `release` environment. Nothing is published until a version tag is pushed.
+5. Reserve the `ForkForward` prefix on nuget.org.
+6. Write a NuGet-specific readme and a short guide: "moving from AutoMapper 14 to ForkForward.Mapper".
 
 ## Phase 3: beyond the first release
 
