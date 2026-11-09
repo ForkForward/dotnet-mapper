@@ -56,7 +56,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@v4
+      uses: actions/checkout@v7
       with:
         # Full history: MinVer needs the tags, and the next step compares with the base branch.
         fetch-depth: 0
@@ -80,7 +80,7 @@ jobs:
         "measure=$measure" >> $env:GITHUB_OUTPUT
     - name: Setup .NET
       if: steps.decide.outputs.measure == 'true'
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 10.0.x
     - name: Compare with the baseline
@@ -101,7 +101,7 @@ jobs:
         ./Benchmark.ps1 @arguments
     - name: Results
       if: always() && steps.decide.outputs.measure == 'true'
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: benchmarks
         path: artifacts/benchmarks/**
