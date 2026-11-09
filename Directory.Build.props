@@ -1,7 +1,11 @@
 <Project>
 
   <PropertyGroup>
-    <Authors>Jimmy Bogard</Authors>
+    <!-- Who publishes this fork. The original authors are credited in Copyright, in the package description and in NOTICE.md. -->
+    <Authors>ForkForward</Authors>
+    <Company>ForkForward</Company>
+    <Product>ForkForward.Mapper (fork of AutoMapper)</Product>
+    <Copyright>Copyright (c) 2010 Jimmy Bogard and AutoMapper contributors. Modifications copyright (c) 2026 ForkForward contributors.</Copyright>
     <LangVersion>latest</LangVersion>
     <NoWarn>$(NoWarn);CS1701;CS1702;CS1591</NoWarn>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
