@@ -72,13 +72,15 @@ The documentation inherited from AutoMapper is in [docs/source](docs/source), st
 
 ## Building
 
-You need the .NET SDK 9 or newer and the .NET 9 runtime, because the tests target `net9.0`. The integration tests need SQL Server LocalDB, which exists only on Windows.
+The project builds and is tested on Windows and on Linux. You need the .NET SDK 9 or newer and the .NET 9 runtime, because the tests target `net9.0`.
 
 ```powershell
 ./Build.ps1
 ```
 
-This builds the solution, runs all tests and packs `ForkForward.Mapper` into `artifacts/`.
+This builds the solution, runs all tests and packs `ForkForward.Mapper` into `artifacts/`. It runs under PowerShell on both systems.
+
+The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere else, point them at a server with `FORKFORWARD_TEST_SQLSERVER`; see [CONTRIBUTING.md](CONTRIBUTING.md#building).
 
 ## Reporting problems and contributing
 

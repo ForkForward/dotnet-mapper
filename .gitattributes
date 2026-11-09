@@ -15,6 +15,9 @@
 
 core.eol crlf
 
+# Shell scripts run on Linux and macOS and must keep LF line endings in every checkout.
+*.sh text eol=lf
+
 *.cs diff=csharp 
 
 *.csproj merge=union 

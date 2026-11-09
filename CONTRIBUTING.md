@@ -26,13 +26,25 @@ By opening a pull request you confirm that you have the right to submit the chan
 
 ## Building
 
-You need the .NET SDK 9 or newer and the .NET 9 runtime. The integration tests need SQL Server LocalDB, which exists only on Windows; `Setup.ps1` installs it.
+The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET SDK 9 or newer and the .NET 9 runtime.
 
 ```powershell
 ./Build.ps1
 ```
 
-This builds the solution, runs all tests and packs the library into `artifacts/`.
+This builds the solution, runs all tests and packs the library into `artifacts/`. On Linux the build also needs `bash`, `curl` and `unzip`, to download the AutoMapper package the API is compared with.
+
+The integration tests need a SQL Server:
+
+- **Windows:** they use SQL Server LocalDB. `Setup.ps1` installs it.
+- **Linux, macOS, or any other server:** set `FORKFORWARD_TEST_SQLSERVER` to a connection string without a database name. The tests create and drop their own databases, so use a throwaway server:
+
+  ```bash
+  docker run --detach --publish 1433:1433 --env ACCEPT_EULA=Y --env 'MSSQL_SA_PASSWORD=<password>' mcr.microsoft.com/mssql/server:2022-latest
+  export FORKFORWARD_TEST_SQLSERVER='Server=localhost,1433;User Id=sa;Password=<password>;TrustServerCertificate=True'
+  ```
+
+  `ACCEPT_EULA=Y` accepts the Microsoft SQL Server licence terms for that container.
 
 To run only the tests that need no database:
 

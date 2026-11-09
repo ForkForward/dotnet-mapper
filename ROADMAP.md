@@ -9,8 +9,8 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 - [x] Rules for AI-assisted development ([AI_POLICY.md](AI_POLICY.md))
 - [x] Issue forms, pull request template, code owners, label set
 - [x] Tests compile and pass with the .NET 10 SDK
-- [x] CI back on Windows with SQL Server LocalDB, with its SDKs installed explicitly
-- [ ] CI green on GitHub (the workflow has not run there yet)
+- [x] CI on Windows (SQL Server LocalDB) and on Ubuntu (SQL Server in a container), with its SDKs installed explicitly
+- [ ] CI green on GitHub on both systems (the workflow has not run there yet)
 - [ ] Repository settings: description, topics `forkforward`, `dotnet`, `object-mapping`, issues enabled, labels applied
 
 ## Phase 1: keep it building
