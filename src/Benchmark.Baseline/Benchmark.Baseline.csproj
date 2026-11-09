@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!-- The "baseline" side of the comparison: the benchmark sources of ../Benchmark compiled against a
+       published package instead of the library in this repository. See Benchmark.ps1.
+
+       The baseline is the last release. After each release, raise BaselineVersion.
+       To compare with something else, set the environment variables BaselinePackage and BaselineVersion
+       (Benchmark.ps1 does it for you); for example AutoMapper 14.0.0, the code this fork started from.
+       They are environment variables rather than command-line properties because BenchmarkDotNet builds
+       this project again on its own, and only the environment reaches that build. -->
+  <PropertyGroup>
+    <BaselinePackage Condition="'$(BaselinePackage)' == ''">ForkForward.Mapper</BaselinePackage>
+    <BaselineVersion Condition="'$(BaselineVersion)' == ''">14.1.0-preview.3</BaselineVersion>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Benchmark</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Benchmark\**\*.cs" Exclude="..\Benchmark\bin\**;..\Benchmark\obj\**" LinkBase="Benchmark" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="$(BaselinePackage)" Version="[$(BaselineVersion)]" />
+    <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+</Project>

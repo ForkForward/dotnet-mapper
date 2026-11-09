@@ -46,6 +46,7 @@ People use this fork so that existing code keeps working.
 - The public API stays compatible with AutoMapper 14.0.0. Every build compares the two and writes the differences to `src/AutoMapper/ApiCompatBaseline.txt`. A pull request that changes that file changes the API, and needs an explicit decision by a maintainer.
 - The `AutoMapper` namespace is not renamed without a decision recorded in [ROADMAP.md](ROADMAP.md).
 - Behaviour changes need a test that shows the old and the new behaviour.
+- Speed is part of compatibility. A change must not make the library slower, or make it allocate more memory, than the last release. CI measures both on every pull request that touches the library and again before a release is published; see the Performance section of [CONTRIBUTING.md](CONTRIBUTING.md#performance).
 
 ## 6. Credit
 

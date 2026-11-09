@@ -16,6 +16,10 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 
 ## Phase 1: keep it building
 
+- [x] Performance gate: speed and allocations are compared with the last release on pull requests and before publishing (`Benchmark.ps1`, the Benchmark workflow)
+- [x] Dependency review on pull requests: known vulnerabilities and licences of added or updated dependencies
+- [x] Dependabot version updates switched on in the repository settings. This repository is a fork, and on a fork `dependabot.yml` does nothing until they are enabled there
+- [ ] Make the CI, Benchmark and Dependency review checks required on `master`
 - [ ] Work through the Dependabot updates
 - [ ] Make the API comparison a hard gate: fail the build on any difference from AutoMapper 14.0.0 that is not already in `ApiCompatBaseline.txt`
 - [x] Tests, benchmark and sample app target `net10.0`; CI builds with the .NET 10 SDK only

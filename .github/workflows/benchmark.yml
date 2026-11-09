@@ -1,0 +1,107 @@
+name: Benchmark
+
+# Compares the speed and the allocations of the library in this branch with the last release.
+# Both sides are measured in the same job on the same machine, in alternating rounds, because
+# timings from different runners cannot be compared. See Benchmark.ps1.
+#
+#   pull_request       gate for changes that can affect performance, Dependabot updates included
+#   workflow_dispatch  run it by hand, for example against AutoMapper 14.0.0
+#   workflow_call      used by the release workflow, so nothing slower than the last release is published
+on:
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+    inputs:
+      baseline-package:
+        description: Package to compare with. Empty means the one set in Benchmark.Baseline.csproj.
+        type: string
+        default: ''
+      baseline-version:
+        description: Version of that package. Empty means the one set in Benchmark.Baseline.csproj.
+        type: string
+        default: ''
+      max-time-regression-percent:
+        description: Fail when a benchmark is slower than the baseline by more than this.
+        type: string
+        default: '10'
+      rounds:
+        description: How many times each side is measured.
+        type: string
+        default: '3'
+  workflow_call:
+    inputs:
+      baseline-package:
+        type: string
+        default: ''
+      baseline-version:
+        type: string
+        default: ''
+      max-time-regression-percent:
+        type: string
+        default: '10'
+      rounds:
+        type: string
+        default: '3'
+permissions:
+  contents: read
+concurrency:
+  # A fixed prefix, not the workflow name: when the release workflow calls this one,
+  # the workflow name is the caller's.
+  group: benchmark-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  compare:
+    name: compare with the last release
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        # Full history: MinVer needs the tags, and the next step compares with the base branch.
+        fetch-depth: 0
+    # The job always runs and always reports a result, so it can be a required check.
+    # On a pull request that cannot affect performance it only skips the measurement.
+    - name: Decide whether to measure
+      id: decide
+      shell: pwsh
+      run: |
+        $measure = 'true'
+        if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
+          $changed = git diff --name-only "origin/$($env:GITHUB_BASE_REF)...HEAD"
+          $relevant = @($changed | Where-Object { $_ -match '^(src/AutoMapper/|src/Benchmark|Directory\.Build\.props$|nuget\.config$|Benchmark\.ps1$|\.github/workflows/benchmark\.yml$)' })
+          if ($relevant.Count -eq 0) {
+            $measure = 'false'
+            '## Benchmark comparison' >> $env:GITHUB_STEP_SUMMARY
+            '' >> $env:GITHUB_STEP_SUMMARY
+            'Skipped: this pull request does not change the library, its dependencies or the benchmarks.' >> $env:GITHUB_STEP_SUMMARY
+          }
+        }
+        "measure=$measure" >> $env:GITHUB_OUTPUT
+    - name: Setup .NET
+      if: steps.decide.outputs.measure == 'true'
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+    - name: Compare with the baseline
+      if: steps.decide.outputs.measure == 'true'
+      shell: pwsh
+      env:
+        BASELINE_PACKAGE: ${{ inputs.baseline-package }}
+        BASELINE_VERSION: ${{ inputs.baseline-version }}
+        MAX_TIME_REGRESSION_PERCENT: ${{ inputs.max-time-regression-percent }}
+        ROUNDS: ${{ inputs.rounds }}
+      run: |
+        # The inputs are empty on a pull request; the script's own defaults apply then.
+        $arguments = @{}
+        if ($env:BASELINE_PACKAGE) { $arguments.BaselinePackage = $env:BASELINE_PACKAGE }
+        if ($env:BASELINE_VERSION) { $arguments.BaselineVersion = $env:BASELINE_VERSION }
+        if ($env:MAX_TIME_REGRESSION_PERCENT) { $arguments.MaxTimeRegressionPercent = [double]$env:MAX_TIME_REGRESSION_PERCENT }
+        if ($env:ROUNDS) { $arguments.Rounds = [int]$env:ROUNDS }
+        ./Benchmark.ps1 @arguments
+    - name: Results
+      if: always() && steps.decide.outputs.measure == 'true'
+      uses: actions/upload-artifact@v7
+      with:
+        name: benchmarks
+        path: artifacts/benchmarks/**

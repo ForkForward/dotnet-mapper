@@ -62,6 +62,32 @@ dotnet test src/UnitTests
 dotnet test src/AutoMapper.DI.Tests
 ```
 
+## Performance
+
+The library must not get slower, or allocate more memory, than the last release. `Benchmark.ps1` checks it:
+
+```powershell
+./Benchmark.ps1
+```
+
+It builds the same benchmarks twice, against the library in this repository and against the last published package, measures both on your machine in alternating rounds, and prints a comparison. It takes about eight minutes. It fails when a mapping benchmark is more than 10 % slower than the baseline, or when any benchmark allocates more memory.
+
+To compare with the code this fork started from:
+
+```powershell
+./Benchmark.ps1 -BaselinePackage AutoMapper -BaselineVersion 14.0.0
+```
+
+CI runs the same comparison on every pull request that changes the library, its dependencies or the benchmarks, and once more before a release is published. Two things to know about the result:
+
+- **Allocations are exact.** They do not depend on how busy the machine is, so an increase is always a real one.
+- **Timings are noisy on shared machines.** The fastest iteration of each side is compared, because other work on the machine only ever adds time. The benchmarks in `ReferenceBenchmarks` do not use the library, so both sides must measure the same there. When they do not, the run is reported as inconclusive instead of as a regression: run the job again.
+- **Startup benchmarks are checked for allocations only.** The time to build a configuration varies too much between runs to be a gate; it is shown for information.
+
+New benchmarks go into `src/Benchmark`. The same sources are compiled against the baseline package, so a benchmark can only use API that the last release already has.
+
+After a release, raise `BaselineVersion` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj` to the version just released.
+
 ## Commit messages
 
 A short summary line, then what changed and why. Reference the issue number. Commits written by an AI tool carry a `Co-Authored-By` trailer naming the tool.

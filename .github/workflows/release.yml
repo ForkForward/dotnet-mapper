@@ -44,8 +44,13 @@ jobs:
           artifacts/package/release/*.snupkg
         if-no-files-found: error
 
+  # The release is compared with the previous one before it is published:
+  # nothing slower, and nothing that allocates more, goes out. See Benchmark.ps1.
+  benchmark:
+    uses: ./.github/workflows/benchmark.yml
+
   publish:
-    needs: build
+    needs: [build, benchmark]
     runs-on: ubuntu-latest
     # A maintainer decides what is released: add required reviewers to this environment
     # in the repository settings and the job waits for their approval.
