@@ -54,6 +54,8 @@ jobs:
   compare:
     name: compare with the last release
     runs-on: ubuntu-latest
+    # A full comparison takes about ten minutes. Without a limit a hung benchmark would run for six hours.
+    timeout-minutes: 30
     steps:
     - name: Checkout
       uses: actions/checkout@v7
