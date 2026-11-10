@@ -2,6 +2,12 @@
 
 All notable changes to ForkForward.Mapper. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) and continue AutoMapper's 14.x line, which is the code this fork starts from.
 
+## [Unreleased]
+
+### Changed
+
+- The documentation is published at [forkforward.dev/dotnet-mapper](https://forkforward.dev/dotnet-mapper/), and the package's project website on nuget.org points there instead of the GitHub repository. The repository is still linked from the package as its source.
+
 ## [14.1.0] - 2026-11-10
 
 The first stable release of ForkForward.Mapper. It is AutoMapper 14.0.0 (plus the three commits that followed it in the MIT-licensed repository) with its own identity, a security fix, and the build and release infrastructure of this fork. There are no functional changes to mapping.
@@ -38,6 +44,7 @@ First preview on nuget.org: AutoMapper 14.0.0 plus three commits, rebranded as a
 
 The code starts at commit [`92816585`](https://github.com/AutoMapper/AutoMapper.Archive/commit/928165859deaf9a59c4433771b3c58a9536284dd) of the AutoMapper repository, which is release 14.0.0 plus three commits, under the MIT licence. Its history is in [docs/source](docs/source) (the upgrade guides) and in the [AutoMapper release notes](https://github.com/AutoMapper/AutoMapper.Archive/releases).
 
+[Unreleased]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0...HEAD
 [14.1.0]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.3...v14.1.0
 [14.1.0-preview.3]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.2...v14.1.0-preview.3
 [14.1.0-preview.2]: https://github.com/ForkForward/dotnet-mapper/compare/v14.0.0...v14.1.0-preview.2
