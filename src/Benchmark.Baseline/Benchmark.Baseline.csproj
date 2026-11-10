@@ -10,11 +10,11 @@
        this project again on its own, and only the environment reaches that build. -->
   <PropertyGroup>
     <BaselinePackage Condition="'$(BaselinePackage)' == ''">ForkForward.Mapper</BaselinePackage>
-    <BaselineVersion Condition="'$(BaselineVersion)' == ''">14.1.0-preview.3</BaselineVersion>
+    <BaselineVersion Condition="'$(BaselineVersion)' == ''">14.1.0</BaselineVersion>
     <!-- The namespace of the baseline package. The benchmark sources do not name it; each side gets it from its
-         project. AutoMapper and the previews of ForkForward.Mapper use AutoMapper; from 14.1.0 on it is
-         ForkForward.Mapper. Set it to ForkForward.Mapper when BaselineVersion is raised to 14.1.0 or later. -->
-    <BaselineNamespace Condition="'$(BaselineNamespace)' == ''">AutoMapper</BaselineNamespace>
+         project. ForkForward.Mapper from 14.1.0 on; AutoMapper for the previews and for AutoMapper itself
+         (set it together with BaselinePackage and BaselineVersion, for example through Benchmark.ps1). -->
+    <BaselineNamespace Condition="'$(BaselineNamespace)' == ''">ForkForward.Mapper</BaselineNamespace>
   </PropertyGroup>
 
   <PropertyGroup>

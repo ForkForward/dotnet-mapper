@@ -41,7 +41,9 @@ The previews `14.1.0-preview.2` and `14.1.0-preview.3` were published with the `
 6. [x] NuGet-specific readme (`src/ForkForward.Mapper/PACKAGE.md`) and the guide [Moving from AutoMapper 14](docs/source/Moving-from-AutoMapper-14.md).
 7. [x] `CHANGELOG.md`, linked from the package as release notes.
 
-Release steps for `14.1.0`: merge the release pull request; push the tag `v14.1.0`; the release workflow builds, runs the benchmark against `14.1.0-preview.3`, publishes to nuget.org and creates the GitHub release; then raise `BaselineVersion` to `14.1.0` and `BaselineNamespace` to `ForkForward.Mapper` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj`.
+- [x] `14.1.0` released on 2026-11-10: tag `v14.1.0`, [package on nuget.org](https://www.nuget.org/packages/ForkForward.Mapper/14.1.0), [GitHub release](https://github.com/ForkForward/dotnet-mapper/releases/tag/v14.1.0) created by the workflow; the benchmark baseline is now `14.1.0`.
+
+Release steps for the next version: merge what goes in; push the tag `v<version>`; the release workflow builds, runs the benchmark against the baseline, publishes to nuget.org and creates the GitHub release; then raise `BaselineVersion` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj` (and `BaselineNamespace`, should the namespace ever change again).
 
 ## Phase 3: beyond the first release
 
