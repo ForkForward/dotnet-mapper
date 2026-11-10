@@ -27,6 +27,12 @@
     2  inconclusive: slower than allowed, but the reference benchmarks show the machine was too noisy
     3  the benchmarks did not build or did not run
 
+  Next to summary.md the run writes verdict.json. With -MergeVerdicts, several of those, from runs on
+  different machines, are judged together: a benchmark is slower only when every run measured it slower.
+  The two sides are two separately compiled assemblies of the same benchmarks, and on some machines the
+  JIT lays one of them out less favourably; one run then shows a difference of 10 % in a single benchmark
+  that another machine does not see at all. Allocations do not depend on the machine: more in any run counts.
+
 .EXAMPLE
   ./Benchmark.ps1
 
@@ -38,6 +44,9 @@
 
 .EXAMPLE
   ./Benchmark.ps1 -CompareOnly -MaxTimeRegressionPercent 5
+
+.EXAMPLE
+  ./Benchmark.ps1 -MergeVerdicts ./run-1/verdict.json, ./run-2/verdict.json
 #>
 [CmdletBinding()]
 param(
@@ -56,7 +65,9 @@ param(
     [string]$Filter = '*',
     [string]$OutputDirectory = './artifacts/benchmarks',
     # Judge the measurements of the previous run again, for example with other limits, without measuring.
-    [switch]$CompareOnly
+    [switch]$CompareOnly,
+    # Judge the verdict.json files of several runs together; nothing is measured. See the description.
+    [string[]]$MergeVerdicts
 )
 
 $ErrorActionPreference = 'Stop'
@@ -105,6 +116,99 @@ function Read-Results([string]$directory) {
         }
     }
     return $results
+}
+
+# Several runs judged together. Time: slower only when every run says so, and only trusted when every
+# run was quiet. Allocations: more in any run.
+function Merge-Verdicts([string[]]$files) {
+    $runs = @()
+    foreach ($file in $files) {
+        $runs += Get-Content -Path $file -Raw -Encoding utf8 | ConvertFrom-Json
+    }
+    $failed = @($runs | Where-Object { $_.ExitCode -eq 3 })
+    if ($failed.Count -gt 0) {
+        Write-Host "$($failed.Count) of $($runs.Count) runs did not measure."
+        exit 3
+    }
+    $names = @($runs | ForEach-Object { $_.Rows } | ForEach-Object { $_.Name } | Sort-Object -Unique)
+    $confirmedSlower = @()
+    $unconfirmedSlower = @()
+    $allocatesMore = @()
+    $lines = @()
+    $header = '| Benchmark |'
+    $separator = '|---|'
+    for ($i = 1; $i -le $runs.Count; $i++) { $header += " Time, run $i |"; $separator += '---:|' }
+    for ($i = 1; $i -le $runs.Count; $i++) { $header += " Memory, run $i |"; $separator += '---:|' }
+    $lines += $header + ' Result |'
+    $lines += $separator + '---|'
+    foreach ($name in $names) {
+        $rows = @($runs | ForEach-Object { $_.Rows | Where-Object { $_.Name -eq $name } })
+        $slowerIn = @($runs | Where-Object { $_.Slower -contains $name })
+        $heavierIn = @($runs | Where-Object { $_.AllocatesMore -contains $name })
+        $result = 'ok'
+        if ($rows[0].IsReference) {
+            $result = 'reference'
+        }
+        elseif ($heavierIn.Count -gt 0) {
+            $allocatesMore += $name
+            $result = '**allocates more**'
+            if ($slowerIn.Count -eq $runs.Count) { $confirmedSlower += $name; $result = '**slower, allocates more**' }
+        }
+        elseif ($slowerIn.Count -eq $runs.Count) {
+            $confirmedSlower += $name
+            $result = '**slower**'
+        }
+        elseif ($slowerIn.Count -gt 0) {
+            $unconfirmedSlower += $name
+            $result = "slower in $($slowerIn.Count) of $($runs.Count) runs, not confirmed"
+        }
+        elseif (-not $rows[0].TimeIsGated) {
+            $result = 'ok (allocations only)'
+        }
+        $cells = @($name)
+        $cells += $rows | ForEach-Object { Format-Change ([double]$_.TimeRatio) }
+        $cells += $rows | ForEach-Object { if ([double]::IsInfinity([double]$_.AllocationRatio)) { 'n/a' } else { Format-Change ([double]$_.AllocationRatio) } }
+        $cells += $result
+        $lines += '| ' + ($cells -join ' | ') + ' |'
+    }
+    $allQuiet = @($runs | Where-Object { -not $_.Quiet }).Count -eq 0
+    $exitCode = 0
+    $verdict = 'No regression.'
+    if ($allocatesMore.Count -gt 0) {
+        $exitCode = 1
+        $verdict = 'Regression: more memory allocated in ' + ($allocatesMore -join ', ') + '.'
+        if ($confirmedSlower.Count -gt 0) { $verdict += ' Also slower: ' + ($confirmedSlower -join ', ') + '.' }
+    }
+    elseif ($confirmedSlower.Count -gt 0 -and $allQuiet) {
+        $exitCode = 1
+        $verdict = 'Regression: slower in ' + ($confirmedSlower -join ', ') + ", in every one of $($runs.Count) runs."
+    }
+    elseif ($confirmedSlower.Count -gt 0) {
+        $exitCode = 2
+        $verdict = 'Inconclusive: ' + ($confirmedSlower -join ', ') + ' measured slower in every run, but at least one machine was too noisy to trust timings. Run it again.'
+    }
+    if ($unconfirmedSlower.Count -gt 0) {
+        $verdict += ' ' + ($unconfirmedSlower -join ', ') + ' measured slower in some runs but not in others: the usual sign of two builds laid out differently by the JIT, not of a change in the code.'
+    }
+    $report = @()
+    $report += '## Benchmark comparison'
+    $report += ''
+    $report += "**$verdict**"
+    $report += ''
+    $report += "- Baseline: $($runs[0].Libraries.baseline)"
+    $report += "- Current: $($runs[0].Libraries.current)"
+    $report += "- Runs: $($runs.Count), each on its own machine; machine noise " + (($runs | ForEach-Object { ([double]$_.NoisePercent).ToString('0.0', $invariant) + ' %' }) -join ', ')
+    $report += "- Limits: time +$(([double]$runs[0].Limits.Time).ToString($invariant)) %, allocations +$(([double]$runs[0].Limits.Allocations).ToString($invariant)) %. Time counts only when every run measured it; allocations count in any run"
+    $report += ''
+    $report += $lines
+    $report += ''
+    if ($env:GITHUB_STEP_SUMMARY) { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $report -Encoding utf8 }
+    $report | Out-Host
+    exit $exitCode
+}
+
+if ($MergeVerdicts) {
+    Merge-Verdicts $MergeVerdicts
 }
 
 # Environment variables, not -p: arguments: BenchmarkDotNet builds the projects again by itself,
@@ -282,6 +386,20 @@ $report += ''
 
 $summaryFile = Join-Path $OutputDirectory 'summary.md'
 Set-Content -Path $summaryFile -Value $report -Encoding utf8
+# For -MergeVerdicts: the same judgement, machine-readable.
+$verdictFile = Join-Path $OutputDirectory 'verdict.json'
+[ordered]@{
+    ExitCode      = $exitCode
+    Verdict       = $verdict
+    Quiet         = $quiet
+    NoisePercent  = $noisePercent
+    Rounds        = $Rounds
+    Limits        = [ordered]@{ Time = $MaxTimeRegressionPercent; Allocations = $MaxAllocationRegressionPercent; Noise = $MaxNoisePercent }
+    Libraries     = [ordered]@{ baseline = $libraries['baseline']; current = $libraries['current'] }
+    Slower        = @($slower)
+    AllocatesMore = @($allocatesMore)
+    Rows          = @($rows)
+} | ConvertTo-Json -Depth 4 | Set-Content -Path $verdictFile -Encoding utf8
 if ($env:GITHUB_STEP_SUMMARY) { Add-Content -Path $env:GITHUB_STEP_SUMMARY -Value $report -Encoding utf8 }
 $report | Out-Host
 Write-Host "Report: $summaryFile"
