@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+﻿using ForkForward.Mapper;
 using Microsoft.Extensions.DependencyInjection;
 
 IServiceCollection services = new ServiceCollection();

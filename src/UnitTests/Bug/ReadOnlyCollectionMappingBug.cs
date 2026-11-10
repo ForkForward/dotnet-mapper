@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Bug;
+﻿namespace ForkForward.Mapper.UnitTests.Bug;
 
 // Bug #511
 // https://github.com/AutoMapper/AutoMapper/issues/511

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests
+﻿namespace ForkForward.Mapper.IntegrationTests
 {
     namespace ChildClassTests
     {

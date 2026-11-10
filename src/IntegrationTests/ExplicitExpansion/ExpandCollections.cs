@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.ExplicitExpansion;
+﻿namespace ForkForward.Mapper.IntegrationTests.ExplicitExpansion;
 
 public class ExpandCollections : IntegrationTest<ExpandCollections.DatabaseInitializer>
 {

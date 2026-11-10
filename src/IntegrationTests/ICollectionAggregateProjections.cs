@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests;
+﻿namespace ForkForward.Mapper.IntegrationTests;
 public class ICollectionAggregateProjections : IntegrationTest<ICollectionAggregateProjections.DatabaseInitializer>
 {
     public class Customer

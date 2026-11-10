@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 interface IGeneric<T> { }
 public class When_an_extension_methods_contraints_fail : NonValidatingSpecBase

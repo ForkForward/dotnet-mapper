@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Bug;
+﻿namespace ForkForward.Mapper.UnitTests.Bug;
 public class ListSourceMapperBug
 {
     public class CustomCollection<T> : Collection<T>, IListSource

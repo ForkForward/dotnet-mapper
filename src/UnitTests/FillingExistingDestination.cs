@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class When_a_source_child_object_is_null : AutoMapperSpecBase
 {

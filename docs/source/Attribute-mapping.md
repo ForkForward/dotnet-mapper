@@ -43,7 +43,7 @@ These all correspond to the similar fluent mapping configuration options. Only t
 
 For attribute-based maps, you can decorate individual members with additional configuration. Because attributes have limitations in C# (no expressions, for example), the configuration options available are a bit limited.
 
-Member-based attributes are declared in the `AutoMapper.Configuration.Annotations` namespace.
+Member-based attributes are declared in the `ForkForward.Mapper.Configuration.Annotations` namespace.
 
 If the attribute-based configuration is not available or will not work, you can combine both attribute and profile-based maps (though this may be confusing).
 
@@ -52,7 +52,7 @@ If the attribute-based configuration is not available or will not work, you can 
 Use the `IgnoreAttribute` to ignore an individual destination member from mapping and/or validation:
 
 ```c#
-using AutoMapper.Configuration.Annotations;
+using ForkForward.Mapper.Configuration.Annotations;
 
 [AutoMap(typeof(Order))]
 public class OrderDto {
@@ -65,7 +65,7 @@ public class OrderDto {
 It is not possible to use `MapFrom` with an expression in an attribute, but `SourceMemberAttribute` can redirect to a separate named member:
 
  ```c#
-using AutoMapper.Configuration.Annotations;
+using ForkForward.Mapper.Configuration.Annotations;
 
 [AutoMap(typeof(Order))]
 public class OrderDto {
@@ -76,7 +76,7 @@ public class OrderDto {
 Or use the `nameof` operator:
 
  ```c#
-using AutoMapper.Configuration.Annotations;
+using ForkForward.Mapper.Configuration.Annotations;
 
 [AutoMap(typeof(Order))]
 public class OrderDto {

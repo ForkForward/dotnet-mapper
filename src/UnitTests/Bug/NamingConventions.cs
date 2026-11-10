@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.Bug.NamingConventions;
+namespace ForkForward.Mapper.UnitTests.Bug.NamingConventions;
 
 public class RemoveNameSplitMapper : NonValidatingSpecBase
 {

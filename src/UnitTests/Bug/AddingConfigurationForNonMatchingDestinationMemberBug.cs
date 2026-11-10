@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.Bug
+namespace ForkForward.Mapper.UnitTests.Bug
 {
     namespace AddingConfigurationForNonMatchingDestinationMember
     {

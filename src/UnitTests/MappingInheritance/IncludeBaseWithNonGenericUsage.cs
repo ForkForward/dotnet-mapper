@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.MappingInheritance;
+namespace ForkForward.Mapper.UnitTests.MappingInheritance;
 
 public class IncludeBaseWithNonGenericUsage : AutoMapperSpecBase
 {

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.Inheritance;
+﻿namespace ForkForward.Mapper.IntegrationTests.Inheritance;
 
 public class QueryableInterfaceInheritanceIssue : IntegrationTest<QueryableInterfaceInheritanceIssue.DatabaseInitializer>
 {

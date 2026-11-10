@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Mappers
+﻿namespace ForkForward.Mapper.UnitTests.Mappers
 {
     namespace ReadOnlyCollections
     {

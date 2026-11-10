@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests;
+﻿namespace ForkForward.Mapper.UnitTests;
 public class MissingMapping : AutoMapperSpecBase
 {
     public class Source

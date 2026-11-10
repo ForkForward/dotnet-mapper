@@ -1,6 +1,6 @@
 ﻿using System.Dynamic;
 
-namespace AutoMapper.UnitTests.Mappers.Dynamic;
+namespace ForkForward.Mapper.UnitTests.Mappers.Dynamic;
 
 class Destination
 {

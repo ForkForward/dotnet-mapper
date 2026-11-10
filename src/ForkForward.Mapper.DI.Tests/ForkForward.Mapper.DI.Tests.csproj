@@ -1,0 +1,31 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <PreserveCompilationContext>true</PreserveCompilationContext>
+    <AssemblyName>ForkForward.Mapper.Extensions.Microsoft.DependencyInjection.Tests</AssemblyName>
+    <PackageId>ForkForward.Mapper.Extensions.Microsoft.DependencyInjection.Tests</PackageId>
+    <GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+    <GenerateAssemblyConfigurationAttribute>false</GenerateAssemblyConfigurationAttribute>
+    <GenerateAssemblyCompanyAttribute>false</GenerateAssemblyCompanyAttribute>
+    <GenerateAssemblyProductAttribute>false</GenerateAssemblyProductAttribute>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ForkForward.Mapper\ForkForward.Mapper.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" PrivateAssets="All" />
+    <PackageReference Include="Shouldly" Version="4.3.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.22" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="ForkForward.Mapper" />
+    <Using Include="ForkForward.Mapper.QueryableExtensions" />
+    <Using Include="ForkForward.Mapper.Internal" />
+  </ItemGroup>
+</Project>

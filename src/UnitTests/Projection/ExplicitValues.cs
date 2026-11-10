@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Projection;
+﻿namespace ForkForward.Mapper.UnitTests.Projection;
 public class ExplicitValues : AutoMapperSpecBase
 {
     private List<Dest> _dests;

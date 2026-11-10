@@ -11,6 +11,10 @@
   <PropertyGroup>
     <BaselinePackage Condition="'$(BaselinePackage)' == ''">ForkForward.Mapper</BaselinePackage>
     <BaselineVersion Condition="'$(BaselineVersion)' == ''">14.1.0-preview.3</BaselineVersion>
+    <!-- The namespace of the baseline package. The benchmark sources do not name it; each side gets it from its
+         project. AutoMapper and the previews of ForkForward.Mapper use AutoMapper; from 14.1.0 on it is
+         ForkForward.Mapper. Set it to ForkForward.Mapper when BaselineVersion is raised to 14.1.0 or later. -->
+    <BaselineNamespace Condition="'$(BaselineNamespace)' == ''">AutoMapper</BaselineNamespace>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -27,6 +31,12 @@
   <ItemGroup>
     <PackageReference Include="$(BaselinePackage)" Version="[$(BaselineVersion)]" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="$(BaselineNamespace)" />
+    <Using Include="$(BaselineNamespace).QueryableExtensions" />
+    <Using Include="$(BaselineNamespace).Internal" />
   </ItemGroup>
 
 </Project>

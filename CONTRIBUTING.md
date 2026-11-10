@@ -15,7 +15,7 @@ Report bugs in this fork here, in [ForkForward/dotnet-mapper](https://github.com
 - Pull requests go to the `master` branch.
 - The change is produced with an AI coding tool, and the pull request says which one and what you checked yourself. The template asks for this.
 - Every bug fix and feature comes with a test.
-- The public API stays compatible with AutoMapper 14.0.0. If your change modifies `src/AutoMapper/ApiCompatBaseline.txt`, say why in the pull request.
+- The public API stays compatible with AutoMapper 14.0.0, under the `ForkForward.Mapper` namespace. A change to a public type or member is explained in the pull request.
 - Discuss larger changes in an issue before you start.
 
 ## Where code may come from
@@ -26,7 +26,7 @@ By opening a pull request you confirm that you have the right to submit the chan
 
 ## Building
 
-The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET 10 SDK. The solution file is `AutoMapper.slnx`. The library targets `net8.0`; the tests, the benchmark and the sample app target `net10.0`.
+The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET 10 SDK. The solution file is `ForkForward.Mapper.slnx`. The library targets `net8.0`; the tests, the benchmark and the sample app target `net10.0`.
 
 ```powershell
 ./Build.ps1
@@ -40,8 +40,6 @@ This builds the solution, runs all tests and packs the library. All build output
 | `artifacts/obj/<project>` | intermediate files |
 | `artifacts/TestResults` | test results (`.trx`) |
 | `artifacts/package/release` | the NuGet package and its symbols |
-
-On Linux the build also needs `bash`, `curl` and `unzip`, to download the AutoMapper package the API is compared with.
 
 The integration tests need a SQL Server:
 
@@ -59,7 +57,7 @@ To run only the tests that need no database:
 
 ```powershell
 dotnet test src/UnitTests
-dotnet test src/AutoMapper.DI.Tests
+dotnet test src/ForkForward.Mapper.DI.Tests
 ```
 
 ## Performance
@@ -85,9 +83,9 @@ CI runs the same comparison on every pull request that changes the library, its 
 - **CI measures on two runners and believes a slowdown only when both see it.** The two sides are two separately compiled assemblies of the same code, and on some machines the JIT lays one of them out less favourably; a single runner then reports one benchmark 10 % slower that another runner does not see at all. A slowdown on one runner only is shown as "not confirmed" and does not fail the check. More allocations on either runner do. Locally, `./Benchmark.ps1 -MergeVerdicts a/verdict.json, b/verdict.json` judges two runs the same way.
 - **Startup benchmarks are checked for allocations only.** The time to build a configuration varies too much between runs to be a gate; it is shown for information.
 
-New benchmarks go into `src/Benchmark`. The same sources are compiled against the baseline package, so a benchmark can only use API that the last release already has.
+New benchmarks go into `src/Benchmark`. The same sources are compiled against the baseline package, so a benchmark can only use API that the last release already has, and they do not name the library's namespace: each project supplies it (`ForkForward.Mapper` for the current side, `BaselineNamespace` in `Benchmark.Baseline.csproj` for the baseline).
 
-After a release, raise `BaselineVersion` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj` to the version just released.
+After a release, raise `BaselineVersion` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj` to the version just released, and set `BaselineNamespace` to `ForkForward.Mapper` once the baseline is 14.1.0 or later.
 
 ## Commit messages
 

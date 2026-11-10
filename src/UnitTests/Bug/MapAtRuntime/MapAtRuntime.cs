@@ -1,7 +1,7 @@
 ﻿using OmmitedDatabaseModel3;
 using OmmitedDTOModel3;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class MapAtRuntime : AutoMapperSpecBase
 {

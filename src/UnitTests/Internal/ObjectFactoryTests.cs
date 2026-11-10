@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 using Execution;
 public class ObjectFactoryTests

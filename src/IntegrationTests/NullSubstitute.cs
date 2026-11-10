@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests;
+﻿namespace ForkForward.Mapper.IntegrationTests;
 
 public class NullSubstitute : IntegrationTest<NullSubstitute.DatabaseInitializer>
 {

@@ -1,6 +1,6 @@
-﻿using AutoMapper.Configuration.Annotations;
+﻿using ForkForward.Mapper.Configuration.Annotations;
 
-namespace AutoMapper.UnitTests
+namespace ForkForward.Mapper.UnitTests
 {
     namespace AttributeBasedMaps
     {

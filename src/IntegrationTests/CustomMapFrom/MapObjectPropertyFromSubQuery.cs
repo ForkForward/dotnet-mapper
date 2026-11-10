@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.CustomMapFrom;
+﻿namespace ForkForward.Mapper.IntegrationTests.CustomMapFrom;
 public class MultipleLevelsSubquery : IntegrationTest<MultipleLevelsSubquery.DatabaseInitializer>
 {
     [Fact]

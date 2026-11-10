@@ -27,6 +27,10 @@ on:
         description: Version of that package. Empty means the one set in Benchmark.Baseline.csproj.
         type: string
         default: ''
+      baseline-namespace:
+        description: Its namespace. AutoMapper for AutoMapper itself and for ForkForward.Mapper previews, ForkForward.Mapper from 14.1.0 on. Empty means the one set in Benchmark.Baseline.csproj.
+        type: string
+        default: ''
       max-time-regression-percent:
         description: Fail when a benchmark is slower than the baseline by more than this.
         type: string
@@ -41,6 +45,9 @@ on:
         type: string
         default: ''
       baseline-version:
+        type: string
+        default: ''
+      baseline-namespace:
         type: string
         default: ''
       max-time-regression-percent:
@@ -82,7 +89,7 @@ jobs:
         $measure = 'true'
         if ($env:GITHUB_EVENT_NAME -eq 'pull_request') {
           $changed = git diff --name-only "origin/$($env:GITHUB_BASE_REF)...HEAD"
-          $relevant = @($changed | Where-Object { $_ -match '^(src/AutoMapper/|src/Benchmark|Directory\.Build\.props$|nuget\.config$|Benchmark\.ps1$|\.github/workflows/benchmark\.yml$)' })
+          $relevant = @($changed | Where-Object { $_ -match '^(src/ForkForward.Mapper/|src/Benchmark|Directory\.Build\.props$|nuget\.config$|Benchmark\.ps1$|\.github/workflows/benchmark\.yml$)' })
           if ($relevant.Count -eq 0) { $measure = 'false' }
         }
         "measure=$measure" >> $env:GITHUB_OUTPUT
@@ -99,6 +106,7 @@ jobs:
       env:
         BASELINE_PACKAGE: ${{ inputs.baseline-package }}
         BASELINE_VERSION: ${{ inputs.baseline-version }}
+        BASELINE_NAMESPACE: ${{ inputs.baseline-namespace }}
         MAX_TIME_REGRESSION_PERCENT: ${{ inputs.max-time-regression-percent }}
         ROUNDS: ${{ inputs.rounds }}
       run: |
@@ -106,6 +114,7 @@ jobs:
         $arguments = @{}
         if ($env:BASELINE_PACKAGE) { $arguments.BaselinePackage = $env:BASELINE_PACKAGE }
         if ($env:BASELINE_VERSION) { $arguments.BaselineVersion = $env:BASELINE_VERSION }
+        if ($env:BASELINE_NAMESPACE) { $arguments.BaselineNamespace = $env:BASELINE_NAMESPACE }
         if ($env:MAX_TIME_REGRESSION_PERCENT) { $arguments.MaxTimeRegressionPercent = [double]$env:MAX_TIME_REGRESSION_PERCENT }
         if ($env:ROUNDS) { $arguments.Rounds = [int]$env:ROUNDS }
         ./Benchmark.ps1 @arguments

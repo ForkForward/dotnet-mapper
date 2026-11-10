@@ -1,0 +1,54 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Summary>Community fork of AutoMapper, a convention-based object-object mapper.</Summary>
+    <Description>ForkForward.Mapper is a community fork of AutoMapper, the convention-based object-object mapper created by Jimmy Bogard. It continues the last MIT-licensed code of AutoMapper (14.0.0) with its own assembly name and namespace, ForkForward.Mapper: moving from AutoMapper 14 is a package reference and a using directive. Independent project: not affiliated with or endorsed by the original authors.</Description>
+    <TargetFramework>net8.0</TargetFramework>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Own assembly name, namespace and signing key since 14.1.0; see ROADMAP.md, phase 2. -->
+    <AssemblyName>ForkForward.Mapper</AssemblyName>
+    <RootNamespace>ForkForward.Mapper</RootNamespace>
+    <AssemblyOriginatorKeyFile>..\..\ForkForward.Mapper.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <PublicSign Condition=" '$(OS)' != 'Windows_NT' ">true</PublicSign>
+    <PackageId>ForkForward.Mapper</PackageId>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageProjectUrl>https://github.com/ForkForward/dotnet-mapper</PackageProjectUrl>
+    <PackageTags>mapper;object-mapping;automapper;fork;forkforward</PackageTags>
+    <PackageReadmeFile>PACKAGE.md</PackageReadmeFile>
+    <PackageReleaseNotes>https://github.com/ForkForward/dotnet-mapper/blob/master/CHANGELOG.md</PackageReleaseNotes>
+
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\icon.png" Pack="true" PackagePath="" Visible="False" />
+    <None Include="PACKAGE.md" Pack="true" PackagePath="" />
+    <!-- The licence and the attribution notice travel with every copy of the package. -->
+    <None Include="..\..\LICENSE.txt" Pack="true" PackagePath="" Visible="False" />
+    <None Include="..\..\NOTICE.md" Pack="true" PackagePath="" Visible="False" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <PackageReference Include="MinVer" Version="6.1.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System.Linq.Expressions.Expression" Static="true" />
+    <Using Include="ForkForward.Mapper.Execution.ExpressionBuilder" Static="true" />
+    <Using Include="ForkForward.Mapper.Execution" />
+    <Using Include="ForkForward.Mapper.Configuration" />
+    <Using Include="ForkForward.Mapper.QueryableExtensions" />
+    <Using Include="ForkForward.Mapper.Internal" />
+  </ItemGroup>
+</Project>

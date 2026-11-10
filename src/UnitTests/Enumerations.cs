@@ -1,6 +1,6 @@
 using System.Runtime.Serialization;
-using AutoMapper.UnitTests;
-namespace AutoMapper.Tests;
+using ForkForward.Mapper.UnitTests;
+namespace ForkForward.Mapper.Tests;
 public class CreateProjectionEnum : AutoMapperSpecBase
 {
     public class Source

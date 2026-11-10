@@ -1,6 +1,6 @@
 ﻿using System.Dynamic;
 
-namespace AutoMapper.UnitTests.Bug;
+namespace ForkForward.Mapper.UnitTests.Bug;
 
 public class MapOverloadsWithDynamic : AutoMapperSpecBase
 {

@@ -1,6 +1,6 @@
 ﻿using StringDictionary = System.Collections.Generic.Dictionary<string, object>;
 
-namespace AutoMapper.UnitTests.Mappers;
+namespace ForkForward.Mapper.UnitTests.Mappers;
 
 class Destination
 {

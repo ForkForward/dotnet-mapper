@@ -1,6 +1,6 @@
-using AutoMapper.QueryableExtensions.Impl;
+using ForkForward.Mapper.QueryableExtensions.Impl;
 
-namespace AutoMapper.UnitTests
+namespace ForkForward.Mapper.UnitTests
 {
     public static class ExpressionBuilderExtensions
     {
