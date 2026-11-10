@@ -21,6 +21,8 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 - [x] Dependabot version updates switched on in the repository settings. This repository is a fork, and on a fork `dependabot.yml` does nothing until they are enabled there
 - [ ] Make the CI, Benchmark and Dependency review checks required on `master`
 - [ ] Work through the Dependabot updates
+- [x] Fix CVE-2026-32933 independently: a source graph too deep for the stack ends in an exception, not in a process crash ([docs/security/CVE-2026-32933.md](docs/security/CVE-2026-32933.md))
+- [ ] Publish a GitHub security advisory for `ForkForward.Mapper` up to 14.1.0-preview.3, so that scanners flag the old previews (repository Security tab; only a maintainer can do this)
 - [ ] Make the API comparison a hard gate: fail the build on any difference from AutoMapper 14.0.0 that is not already in `ApiCompatBaseline.txt`
 - [x] Tests, benchmark and sample app target `net10.0`; CI builds with the .NET 10 SDK only
 - [x] Solution in the `.slnx` format; build output in the artifacts layout

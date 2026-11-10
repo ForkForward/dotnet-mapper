@@ -48,6 +48,7 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
 
 - Namespaces and the assembly name are still `AutoMapper`, so code written for AutoMapper 14 compiles without changes. Remove the reference to the official `AutoMapper` package when you add this one; both contain an `AutoMapper.dll`.
 - Every build compares the public API with the official AutoMapper 14.0.0 package and writes the differences to [ApiCompatBaseline.txt](src/AutoMapper/ApiCompatBaseline.txt). An API change therefore shows up in review as a change to that file.
+- Security fixes are written here independently, from the public advisory and this code. Fixed so far: [CVE-2026-32933](docs/security/CVE-2026-32933.md), a source graph nested deeper than the thread's stack allows crashed the process; it now ends in an `AutoMapperMappingException`. Vulnerability scanners know this package as `ForkForward.Mapper`, not `AutoMapper`, so check that page rather than the official advisory for what is fixed here.
 
 ## Using it
 

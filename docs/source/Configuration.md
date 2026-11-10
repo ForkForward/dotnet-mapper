@@ -225,3 +225,10 @@ You can set `MapAtRuntime` per member or `MaxExecutionPlanDepth` globally (the d
 
 These will reduce the size of the execution plan by replacing the execution plan for a child object with a method call. The compilation will be faster, but the mapping itself might be slower. Search the repo for more details and use a profiler to better understand the effect.
 Avoiding `PreserveReferences` and `MaxDepth` also helps.
+## Source graphs too deep for the stack
+
+A type that contains itself (a tree, a linked list) is mapped one level at a time, and each level uses about a kilobyte of the thread's stack. A graph nested deeper than the stack allows ends in an `AutoMapperMappingException` that says so, naming the member being mapped. On a thread with the default 1 MB stack that is roughly a thousand levels; a 256 KB stack gives about 140, an 8 MB one about 9,000.
+
+If a graph of that depth is legitimate, map it on a thread with a larger stack (`new Thread(work, maxStackSize)`), or set `MaxDepth` on the type map to stop at a fixed depth. Where the depth comes from outside the application, the exception is the intended outcome: before this fork the same input ended in a `StackOverflowException`, which cannot be caught and ends the process ([CVE-2026-32933](https://github.com/advisories/GHSA-rvv3-g6hj-g44x)).
+
+A mapping error deep in a graph is wrapped in an `AutoMapperMappingException` by each of the innermost 8 levels, each wrapper naming the member that was being mapped, and then passed up unchanged. Wrapping at every level used to end the process for an error a few hundred levels deep.

@@ -12,6 +12,7 @@ public class MappingBenchmarks
     readonly CtorMapper _constructor = new();
     readonly ComplexTypeMapper _complex = new();
     readonly DeepTypeMapper _deep = new();
+    readonly TreeMapper _tree = new();
     List<Customer> _customers;
 
     [GlobalSetup]
@@ -21,12 +22,14 @@ public class MappingBenchmarks
         _constructor.Initialize();
         _complex.Initialize();
         _deep.Initialize();
+        _tree.Initialize();
         _customers = Customers.Create(100);
         // Build the execution plans now, so that the measurement does not include compiling them.
         Flattening();
         Constructor();
         ComplexTypes();
         DeepTypes();
+        Tree();
         Collection();
     }
 
@@ -41,6 +44,10 @@ public class MappingBenchmarks
 
     [Benchmark]
     public object DeepTypes() => _deep.Map();
+
+    /// <summary>40 nodes of a type that contains itself; every node goes through the context and the mapper.</summary>
+    [Benchmark]
+    public object Tree() => _tree.Map();
 
     [Benchmark]
     public object Collection() => Config.Map<List<Customer>, List<CustomerDTO>>(_customers);

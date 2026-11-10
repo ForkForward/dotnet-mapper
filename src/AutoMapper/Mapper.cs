@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 namespace AutoMapper;
 
 using IObjectMappingOperationOptions = IMappingOperationOptions<object, object>;
@@ -177,8 +178,21 @@ public sealed class Mapper : IMapper, IInternalRuntimeMapper
     public IQueryable ProjectTo(IQueryable source, Type destinationType, IDictionary<string, object> parameters, params string[] membersToExpand)
         => source.ProjectTo(destinationType, ConfigurationProvider, parameters, membersToExpand);
     TDestination IInternalRuntimeMapper.Map<TSource, TDestination>(TSource source, TDestination destination,
-        ResolutionContext context, Type sourceType, Type destinationType, MemberMap memberMap) =>
-        MapCore(source, destination, context, sourceType, destinationType, memberMap);
+        ResolutionContext context, Type sourceType, Type destinationType, MemberMap memberMap)
+    {
+        // Every nested map comes through here: member maps that are not inlined, collection elements, and
+        // context.Mapper.Map calls from resolvers and converters. A source graph can be nested deeper than
+        // the stack of this thread allows, and that has to end in an exception the caller can catch, not in
+        // a StackOverflowException, which ends the process (CVE-2026-32933). Top-level Map calls do not
+        // pay for this check: they cannot recurse.
+        if (!RuntimeHelpers.TryEnsureSufficientExecutionStack())
+        {
+            ThrowSourceGraphTooDeep<TSource, TDestination>(memberMap);
+        }
+        return MapCore(source, destination, context, sourceType, destinationType, memberMap);
+    }
+    private static void ThrowSourceGraphTooDeep<TSource, TDestination>(MemberMap memberMap) =>
+        throw new SourceGraphTooDeepException(new(typeof(TSource), typeof(TDestination)), memberMap);
     private TDestination MapWithOptions<TSource, TDestination>(TSource source, TDestination destination, Action<IMappingOperationOptions<TSource, TDestination>> opts,
         Type sourceType = null, Type destinationType = null)
     {
