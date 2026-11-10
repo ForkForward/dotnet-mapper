@@ -1,6 +1,6 @@
 ﻿using System.Collections.Specialized;
 
-namespace AutoMapper.UnitTests.Mappers;
+namespace ForkForward.Mapper.UnitTests.Mappers;
 
 public class NameValueCollectionMapperTests
 {

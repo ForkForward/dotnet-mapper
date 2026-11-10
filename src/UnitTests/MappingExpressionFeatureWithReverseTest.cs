@@ -1,6 +1,6 @@
-﻿using AutoMapper.Features;
+﻿using ForkForward.Mapper.Features;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class MappingExpressionFeatureWithReverseTest
 {

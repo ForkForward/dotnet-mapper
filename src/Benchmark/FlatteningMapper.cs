@@ -1,4 +1,3 @@
-using AutoMapper;
 namespace Benchmark.Flattening;
 
 static class Config

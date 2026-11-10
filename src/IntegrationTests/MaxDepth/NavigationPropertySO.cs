@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.MaxDepth;
+﻿namespace ForkForward.Mapper.IntegrationTests.MaxDepth;
 
 public class NavigationPropertySO : IntegrationTest<NavigationPropertySO.DatabaseInitializer>
 {

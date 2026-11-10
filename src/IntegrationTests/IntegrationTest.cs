@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests;
+﻿namespace ForkForward.Mapper.IntegrationTests;
 
 public abstract class IntegrationTest<TInitializer> : AutoMapperSpecBase, IAsyncLifetime where TInitializer : IInitializer, new()
 {
@@ -33,6 +33,9 @@ public abstract class LocalDbContext : DbContext
     static readonly string Server = Environment.GetEnvironmentVariable("FORKFORWARD_TEST_SQLSERVER") is { Length: > 0 } server ?
         server.TrimEnd(';') : @"Data Source=(localdb)\mssqllocaldb;Integrated Security=True";
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder) => optionsBuilder.UseSqlServer(
-        $"{Server};MultipleActiveResultSets=True;Database={GetType()};Connection Timeout=300",
+        $"{Server};MultipleActiveResultSets=True;Database={DatabaseName};Connection Timeout=300",
         o => o.EnableRetryOnFailure(maxRetryCount: 10).CommandTimeout(120));
+    // One database per context type. Without the namespace: the longest names were already close to the
+    // 128 characters SQL Server allows, and LocalDB failed on them once the namespace grew.
+    string DatabaseName => GetType().FullName.Replace("ForkForward.Mapper.IntegrationTests.", "");
 }

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests;
+﻿namespace ForkForward.Mapper.IntegrationTests;
 
 public class IncludeMembers : IntegrationTest<IncludeMembers.DatabaseInitializer>
 {

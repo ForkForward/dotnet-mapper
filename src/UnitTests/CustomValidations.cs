@@ -1,7 +1,7 @@
-using AutoMapper.Configuration;
-using AutoMapper.Internal.Mappers;
+using ForkForward.Mapper.Configuration;
+using ForkForward.Mapper.Internal.Mappers;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class CustomValidations
 {

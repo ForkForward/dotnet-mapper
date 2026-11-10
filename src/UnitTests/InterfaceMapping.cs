@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.InterfaceMapping;
+namespace ForkForward.Mapper.UnitTests.InterfaceMapping;
 public class InterfaceWithObjectProperty : AutoMapperSpecBase
 {
     protected override MapperConfiguration CreateConfiguration() => new(cfg => cfg.CreateMap<ISourceModel, IDestModel>());

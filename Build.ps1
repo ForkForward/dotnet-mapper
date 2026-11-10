@@ -37,4 +37,4 @@ foreach ($path in $testResults, $packages) {
 
 exec { & dotnet test -c Release --results-directory $testResults -l trx }
 
-exec { & dotnet pack ./src/AutoMapper/AutoMapper.csproj -c Release --no-build }
+exec { & dotnet pack ./src/ForkForward.Mapper/ForkForward.Mapper.csproj -c Release --no-build }

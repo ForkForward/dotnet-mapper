@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.Bug;
+namespace ForkForward.Mapper.UnitTests.Bug;
 
 public class When_mapping_to_an_assignable_object_with_nullable_off : AutoMapperSpecBase
 {

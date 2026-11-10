@@ -9,8 +9,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AutoMapper\AutoMapper.csproj" />
+    <ProjectReference Include="..\ForkForward.Mapper\ForkForward.Mapper.csproj" />
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The sources do not name the library's namespace: Benchmark.Baseline compiles them against the previous
+         release, whose namespace may differ. Each project supplies its own. -->
+    <Using Include="ForkForward.Mapper" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="ForkForward.Mapper.QueryableExtensions" />
+    <Using Include="ForkForward.Mapper.Internal" />
+  </ItemGroup>
 </Project>

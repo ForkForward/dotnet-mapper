@@ -1,6 +1,6 @@
-﻿using AutoMapper.Internal.Mappers;
+﻿using ForkForward.Mapper.Internal.Mappers;
 using System.Globalization;
-namespace AutoMapper.UnitTests.Mappers;
+namespace ForkForward.Mapper.UnitTests.Mappers;
 using static TypeDescriptor;
 public class When_specifying_mapping_with_the_BCL_type_converter_class : NonValidatingSpecBase
 {

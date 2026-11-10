@@ -1,6 +1,6 @@
-﻿using AutoMapper.Internal.Mappers;
+﻿using ForkForward.Mapper.Internal.Mappers;
 
-namespace AutoMapper.UnitTests.Mappers;
+namespace ForkForward.Mapper.UnitTests.Mappers;
 
 public class ConvertMapperTests : AutoMapperSpecBase
 {

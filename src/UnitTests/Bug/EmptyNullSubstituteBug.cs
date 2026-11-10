@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Bug;
+﻿namespace ForkForward.Mapper.UnitTests.Bug;
 public class EmptyNullSubstituteBug : NonValidatingSpecBase
 {
     private Entity _destination;

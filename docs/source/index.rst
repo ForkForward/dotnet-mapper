@@ -8,13 +8,13 @@ A convention-based object-object mapper.
    ForkForward.Mapper is a community fork of `AutoMapper <https://automapper.io>`_,
    continued from the last MIT-licensed AutoMapper code (14.0.0). This documentation
    was written by Jimmy Bogard and the AutoMapper contributors and is inherited from
-   the original project. It still describes this code, because the API and the
-   ``AutoMapper`` namespace have not changed, which is why the pages below keep
-   calling the library AutoMapper.
+   the original project. It still describes this code: the API has not changed, only
+   the namespace, which is ``ForkForward.Mapper`` since 14.1.0 and has been updated
+   in the samples. The pages keep calling the library AutoMapper where they describe
+   its design; see :doc:`Moving-from-AutoMapper-14` for what differs.
 
    ForkForward is an independent project and is not affiliated with or endorsed by
-   the original authors. Pages that mention the MyGet feed, Gitter or the official
-   NuGet package describe the original project, not this fork.
+   the original authors.
 
 AutoMapper uses a fluent configuration API to define an object-object
 mapping strategy. AutoMapper uses a convention-based matching algorithm
@@ -33,8 +33,8 @@ New to AutoMapper? Check out the :doc:`Getting-started` page first.
    :caption: Overview
    
    Getting-started
+   Moving-from-AutoMapper-14
    Understanding-your-mapping
-   The-MyGet-build
 
 .. _feature-docs:
 
@@ -97,8 +97,7 @@ The source code contains unit tests for all of the features listed above. Use th
 Housekeeping
 ============
 
-The latest builds can be found at `NuGet <http://www.nuget.org/packages/automapper>`_
+The releases are on `NuGet <https://www.nuget.org/packages/ForkForward.Mapper>`_; what changed in each is in the
+`changelog <https://github.com/ForkForward/dotnet-mapper/blob/master/CHANGELOG.md>`_.
 
-The dev builds can be found at `MyGet <https://myget.org/feed/automapperdev/package/nuget/AutoMapper>`_
-
-The discussion group is hosted on `Google Groups <http://groups.google.com/group/automapper-users>`_
+Questions and bug reports go to the `issues <https://github.com/ForkForward/dotnet-mapper/issues>`_ of this fork.

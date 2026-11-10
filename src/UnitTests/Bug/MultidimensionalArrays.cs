@@ -1,6 +1,6 @@
-﻿using AutoMapper.Internal.Mappers;
+﻿using ForkForward.Mapper.Internal.Mappers;
 
-namespace AutoMapper.UnitTests.Bug;
+namespace ForkForward.Mapper.UnitTests.Bug;
 
 public class MultidimensionalArrays : AutoMapperSpecBase
 {

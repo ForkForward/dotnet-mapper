@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Bug;
+﻿namespace ForkForward.Mapper.UnitTests.Bug;
 public class IgnoreShouldBeInheritedRegardlessOfMapOrder : AutoMapperSpecBase
 {
     public class BaseDomain

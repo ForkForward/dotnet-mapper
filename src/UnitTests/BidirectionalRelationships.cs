@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.BidirectionalRelationships;
+namespace ForkForward.Mapper.UnitTests.BidirectionalRelationships;
 
 public class RecursiveMappingWithStruct : AutoMapperSpecBase
 {

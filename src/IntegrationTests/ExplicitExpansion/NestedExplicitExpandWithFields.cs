@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.ExplicitExpansion;
+﻿namespace ForkForward.Mapper.IntegrationTests.ExplicitExpansion;
 
 public class NestedExplicitExpandWithFields : IntegrationTest<NestedExplicitExpandWithFields.DatabaseInitializer>
 {

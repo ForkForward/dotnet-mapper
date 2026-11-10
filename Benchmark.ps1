@@ -61,6 +61,8 @@ param(
     # Package to compare with. Default: the one in src/Benchmark.Baseline/Benchmark.Baseline.csproj.
     [string]$BaselinePackage,
     [string]$BaselineVersion,
+    # Its namespace: AutoMapper for AutoMapper itself and for ForkForward.Mapper previews, ForkForward.Mapper from 14.1.0 on.
+    [string]$BaselineNamespace,
     # BenchmarkDotNet filter, for example *Mapping* or *Startup*.
     [string]$Filter = '*',
     [string]$OutputDirectory = './artifacts/benchmarks',
@@ -215,6 +217,7 @@ if ($MergeVerdicts) {
 # and only the environment reaches that build.
 if ($BaselinePackage) { $env:BaselinePackage = $BaselinePackage }
 if ($BaselineVersion) { $env:BaselineVersion = $BaselineVersion }
+if ($BaselineNamespace) { $env:BaselineNamespace = $BaselineNamespace }
 
 $sides = [ordered]@{
     baseline = './src/Benchmark.Baseline/Benchmark.Baseline.csproj'
@@ -246,7 +249,8 @@ if (-not $CompareOnly) {
 $libraries = @{}
 foreach ($side in $sides.Keys) {
     $project = [System.IO.Path]::GetFileNameWithoutExtension($sides[$side])
-    $library = Get-ChildItem -Path "./artifacts/bin/$project/release" -Recurse -Filter 'AutoMapper.dll' | Select-Object -First 1
+    # ForkForward.Mapper.dll from 14.1.0 on; AutoMapper.dll for the previews and for AutoMapper itself.
+    $library = Get-ChildItem -Path "./artifacts/bin/$project/release" -Recurse -Include 'ForkForward.Mapper.dll', 'AutoMapper.dll' | Select-Object -First 1
     $version = [System.Diagnostics.FileVersionInfo]::GetVersionInfo($library.FullName)
     $libraries[$side] = ($version.ProductName + ' ' + ($version.ProductVersion -split '\+')[0])
 }

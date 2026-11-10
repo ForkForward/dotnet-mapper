@@ -1,6 +1,6 @@
 using System.Dynamic;
-using AutoMapper.Internal.Mappers;
-namespace AutoMapper.UnitTests.ArraysAndLists;
+using ForkForward.Mapper.Internal.Mappers;
+namespace ForkForward.Mapper.UnitTests.ArraysAndLists;
 
 public class When_mapping_to_Existing_IEnumerable : AutoMapperSpecBase
 {

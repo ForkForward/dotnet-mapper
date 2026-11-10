@@ -28,7 +28,7 @@ Changes in this fork are written with AI coding tools and automation and are rev
 
 ForkForward is an independent project. It is not affiliated with, sponsored by, or endorsed by Jimmy Bogard, Lucky Penny Software, the AutoMapper project or the .NET Foundation.
 
-"AutoMapper" is the name of the original project and belongs to its owners. This fork uses the name only to identify the origin of the code and to describe compatibility. The `AutoMapper` namespace and assembly name are kept in the code for source compatibility. The fork is distributed under its own name, `ForkForward.Mapper`, and with its own logo.
+"AutoMapper" is the name of the original project and belongs to its owners. This fork uses the name only to identify the origin of the code and to describe compatibility. Since version 14.1.0 the assembly, the namespaces and the signing key are the fork's own (`ForkForward.Mapper`); type names inherited from the original, such as `AutoMapperMappingException`, are kept for source compatibility. The fork is distributed under its own name, `ForkForward.Mapper`, and with its own logo.
 
 ## Code that must not enter this fork
 

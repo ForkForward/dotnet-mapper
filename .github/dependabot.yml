@@ -11,7 +11,7 @@
 version: 2
 updates:
   - package-ecosystem: nuget
-    directories: ["/", "/src/AutoMapper", "/src/AutoMapper.DI.Tests", "/src/Benchmark", "/src/Benchmark.Baseline", "/src/IntegrationTests", "/src/TestApp", "/src/UnitTests"]
+    directories: ["/", "/src/ForkForward.Mapper", "/src/ForkForward.Mapper.DI.Tests", "/src/Benchmark", "/src/Benchmark.Baseline", "/src/IntegrationTests", "/src/TestApp", "/src/UnitTests"]
     schedule:
       interval: weekly
       day: monday
@@ -30,9 +30,6 @@ updates:
         update-types: ["version-update:semver-major"]
       # The official AutoMapper is never a dependency to update: later versions are under another licence.
       - dependency-name: "AutoMapper"
-      # The API comparison tool stays pinned. It exists only to compare the public API with AutoMapper
-      # 14.0.0, and a newer version applies other rules, so an update would change what counts as compatible.
-      - dependency-name: "Microsoft.DotNet.ApiCompat"
 
   - package-ecosystem: pip
     directories: ["/docs"]

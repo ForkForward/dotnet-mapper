@@ -1,6 +1,6 @@
 using System.Collections.Specialized;
 using System.Collections.Immutable;
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 public class UnsupportedCollection : AutoMapperSpecBase
 {
     class Source

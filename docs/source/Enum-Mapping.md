@@ -1,5 +1,7 @@
 # AutoMapper.Extensions.EnumMapping
 
+> **Note for ForkForward.Mapper:** `AutoMapper.Extensions.EnumMapping` is a third-party package compiled against the official `AutoMapper` assembly. It does not load against `ForkForward.Mapper`, whose assembly and namespace differ, until a version built for this fork exists. The page is kept as a description of the feature.
+
 The built-in enum mapper is not configurable, it can only be replaced. Alternatively, AutoMapper supports convention based mapping of enum values in a separate package [AutoMapper.Extensions.EnumMapping](https://www.nuget.org/packages/AutoMapper.Extensions.EnumMapping/).
 
 ### Usage

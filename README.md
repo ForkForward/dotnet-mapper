@@ -40,14 +40,13 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
 
 ## Status
 
-- A preview is on nuget.org: [`ForkForward.Mapper`](https://www.nuget.org/packages/ForkForward.Mapper). There is no stable release yet. The plan is in [ROADMAP.md](ROADMAP.md).
+- The first stable release, `14.1.0`, is on nuget.org: [`ForkForward.Mapper`](https://www.nuget.org/packages/ForkForward.Mapper). What changed in each release is in [CHANGELOG.md](CHANGELOG.md); the plan is in [ROADMAP.md](ROADMAP.md).
 
   ```
-  dotnet add package ForkForward.Mapper --prerelease
+  dotnet add package ForkForward.Mapper
   ```
 
-- Namespaces and the assembly name are still `AutoMapper`, so code written for AutoMapper 14 compiles without changes. Remove the reference to the official `AutoMapper` package when you add this one; both contain an `AutoMapper.dll`.
-- Every build compares the public API with the official AutoMapper 14.0.0 package and writes the differences to [ApiCompatBaseline.txt](src/AutoMapper/ApiCompatBaseline.txt). An API change therefore shows up in review as a change to that file.
+- The assembly is `ForkForward.Mapper.dll` and the namespaces start with `ForkForward.Mapper`; the types, their members and the behaviour are those of AutoMapper 14.0.0. Moving a project is a package reference and a `using` directive: [Moving from AutoMapper 14](docs/source/Moving-from-AutoMapper-14.md). Type names that carry the old name, such as `AutoMapperMappingException` and `AddAutoMapper`, are unchanged.
 - Security fixes are written here independently, from the public advisory and this code. Fixed so far: [CVE-2026-32933](docs/security/CVE-2026-32933.md), a source graph nested deeper than the thread's stack allows crashed the process; it now ends in an `AutoMapperMappingException`. Vulnerability scanners know this package as `ForkForward.Mapper`, not `AutoMapper`, so check that page rather than the official advisory for what is fixed here.
 
 ## Using it
@@ -55,6 +54,8 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
 Configure the mapper once at startup:
 
 ```csharp
+using ForkForward.Mapper;
+
 var configuration = new MapperConfiguration(cfg =>
 {
     cfg.CreateMap<Foo, FooDto>();
@@ -94,7 +95,7 @@ The integration tests need a SQL Server. On Windows they use LocalDB. Anywhere e
 
 Support for `Microsoft.Extensions.DependencyInjection` is built in: call `services.AddAutoMapper(...)`. There is no separate extension package.
 
-If your project references `AutoMapper.Extensions.Microsoft.DependencyInjection`, remove that reference together with the reference to `AutoMapper`, and add `ForkForward.Mapper`. Your `AddAutoMapper` calls stay as they are.
+If your project references `AutoMapper.Extensions.Microsoft.DependencyInjection`, remove that reference together with the reference to `AutoMapper`, add `ForkForward.Mapper`, and change the `using`. Your `AddAutoMapper` calls stay as they are.
 
 ## Reporting problems and contributing
 

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Bug;
+﻿namespace ForkForward.Mapper.UnitTests.Bug;
 
 public class Self_referencing_existing_destination_without_PreserveReferences : AutoMapperSpecBase
 {

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests;
+﻿namespace ForkForward.Mapper.UnitTests;
 public class UsingEngineInsideMap : AutoMapperSpecBase
 {
     private Dest _dest;

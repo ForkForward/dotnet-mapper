@@ -1,5 +1,5 @@
-﻿using AutoMapper.QueryableExtensions.Impl;
-namespace AutoMapper.UnitTests.Projection;
+﻿using ForkForward.Mapper.QueryableExtensions.Impl;
+namespace ForkForward.Mapper.UnitTests.Projection;
 public class ProjectionMappers : AutoMapperSpecBase
 {
     class Source

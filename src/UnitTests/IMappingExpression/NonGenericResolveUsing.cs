@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class When_using_non_generic_ResolveUsing : AutoMapperSpecBase
 {

@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.MappingInheritance;
+﻿namespace ForkForward.Mapper.UnitTests.MappingInheritance;
 
 public class AsWithMissingMap : NonValidatingSpecBase
 {
@@ -17,7 +17,7 @@ public class AsWithMissingMap : NonValidatingSpecBase
     protected override MapperConfiguration CreateConfiguration() => new(cfg => cfg.CreateMap<TModel, TInterface>().As<TConcrete>());
     [Fact]
     public void Should_report_missing_map() => new Action(AssertConfigurationIsValid).ShouldThrow<InvalidOperationException>().Message.ShouldBe(
-        "Missing map from AutoMapper.UnitTests.MappingInheritance.AsWithMissingMap+TModel to AutoMapper.UnitTests.MappingInheritance.AsWithMissingMap+TConcrete. Create using CreateMap<TModel, TConcrete>.");
+        "Missing map from ForkForward.Mapper.UnitTests.MappingInheritance.AsWithMissingMap+TModel to ForkForward.Mapper.UnitTests.MappingInheritance.AsWithMissingMap+TConcrete. Create using CreateMap<TModel, TConcrete>.");
 }
 public class AsShouldWorkOnlyWithDerivedTypesWithGenerics : AutoMapperSpecBase
 {

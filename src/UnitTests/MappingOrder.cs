@@ -1,6 +1,6 @@
-using static AutoMapper.UnitTests.Bug.MapFromClosureBug;
+using static ForkForward.Mapper.UnitTests.Bug.MapFromClosureBug;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class When_specifying_a_mapping_order_for_base_members : AutoMapperSpecBase
 {

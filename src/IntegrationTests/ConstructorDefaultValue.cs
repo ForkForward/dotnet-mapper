@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests;
+﻿namespace ForkForward.Mapper.IntegrationTests;
 public class ConstructorDefaultValue : IntegrationTest<ConstructorDefaultValue.DatabaseInitializer>
 {
     public class Customer

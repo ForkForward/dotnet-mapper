@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.BuiltInTypes;
+﻿namespace ForkForward.Mapper.IntegrationTests.BuiltInTypes;
 
 public class ProjectEnumerableOfIntToHashSet : IntegrationTest<ProjectEnumerableOfIntToHashSet.DatabaseInitializer>
 {

@@ -1,6 +1,6 @@
-﻿using AutoMapper.Configuration.Conventions;
+﻿using ForkForward.Mapper.Configuration.Conventions;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public abstract class SourceToDestinationMapperAttribute : Attribute
 {

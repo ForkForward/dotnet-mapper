@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.IntegrationTests.MaxDepth;
+﻿namespace ForkForward.Mapper.IntegrationTests.MaxDepth;
 
 public class NestedDtos : IntegrationTest<NestedDtos.DatabaseInitializer>
 {

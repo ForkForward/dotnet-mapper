@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 // A source graph nested deeper than the stack of the thread allows used to end in a StackOverflowException,
 // which cannot be caught and ends the process (CVE-2026-32933). It must end in an exception the caller can catch.

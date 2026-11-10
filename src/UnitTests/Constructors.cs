@@ -1,4 +1,4 @@
-﻿namespace AutoMapper.UnitTests.Constructors;
+﻿namespace ForkForward.Mapper.UnitTests.Constructors;
 public class RecordConstructorValidation : AutoMapperSpecBase
 {
     record Destination(int Value) { }

@@ -1,6 +1,6 @@
-﻿using AutoMapper.Execution;
+﻿using ForkForward.Mapper.Execution;
 
-namespace AutoMapper.UnitTests;
+namespace ForkForward.Mapper.UnitTests;
 
 public class GenerateSimilarType
 {

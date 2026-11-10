@@ -1,4 +1,4 @@
-namespace AutoMapper.UnitTests.Tests;
+namespace ForkForward.Mapper.UnitTests.Tests;
 
 public class MapperTests : NonValidatingSpecBase
 {
