@@ -29,7 +29,7 @@ project.lock.json
 .idea/
 *.sln.iml
 
-# Read the Docs
-docs/_build
+# Zensical build cache; the site itself is built to artifacts/docs
+.cache/
 /src/LastMajorVersionBinary
 *.diagsession
