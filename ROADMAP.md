@@ -49,6 +49,6 @@ Release steps for the next version: merge what goes in; push the tag `v<version>
 
 - [ ] **Decision needed: type names that carry the old name.** `AutoMapperMappingException`, `AutoMapperConfigurationException`, `AutoMapAttribute`, `AddAutoMapper`. Renaming them completes the identity change but breaks source compatibility; the usual way is new names with the old ones kept as `[Obsolete]` forwarders for a release or two.
 - [ ] Compare the public API with the previous ForkForward.Mapper release on every pull request (for example with `Microsoft.DotNet.ApiCompat.Tool`), replacing the comparison with AutoMapper 14.0.0 that the rename made obsolete
-- [ ] Publish the documentation
+- [x] Publish the documentation: [forkforward.dev/dotnet-mapper](https://forkforward.dev/dotnet-mapper/), built with Zensical from `docs/source` and published by the Docs workflow on every change to `master`
 - [x] No separate dependency injection package or repository: `AddAutoMapper` has been part of the main library since before the fork point (`src/AutoMapper/ServiceCollectionExtensions.cs`)
 - [ ] Organisation profile with a catalogue of ForkForward projects by technology
