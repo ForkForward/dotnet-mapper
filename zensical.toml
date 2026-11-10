@@ -1,0 +1,164 @@
+# Zensical configuration for the ForkForward.Mapper documentation.
+#
+# Published to https://forkforward.dev/dotnet-mapper/ by .github/workflows/docs.yml.
+# Preview it locally:
+#
+#   pip install -r docs/requirements.txt
+#   zensical serve          # http://localhost:8000/dotnet-mapper/
+#
+# The pages are inherited from AutoMapper (MIT, Copyright (c) Jimmy Bogard and contributors).
+# ForkForward.Mapper is a community fork of AutoMapper; see NOTICE.md in the repository root.
+
+[project]
+site_name = "ForkForward.Mapper"
+site_description = "Community fork of AutoMapper 14, the convention-based object-object mapper for .NET, under the MIT licence."
+site_author = "Jimmy Bogard and AutoMapper contributors; ForkForward contributors"
+site_url = "https://forkforward.dev/dotnet-mapper/"
+copyright = "Copyright &copy; 2010 Jimmy Bogard and AutoMapper contributors. Modifications &copy; 2026 ForkForward contributors. MIT licence."
+
+repo_url = "https://github.com/ForkForward/dotnet-mapper"
+repo_name = "ForkForward/dotnet-mapper"
+edit_uri = "edit/master/docs/source/"
+
+# The pages stay where they were under Sphinx, so the links into docs/source from README.md,
+# CHANGELOG.md, ROADMAP.md and the NuGet readme keep working.
+docs_dir = "docs/source"
+# All build output goes to artifacts/, like the rest of the build.
+site_dir = "artifacts/docs"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Overview" = [
+    "Getting-started.md",
+    "Setup.md",
+    "Moving-from-AutoMapper-14.md",
+    "Understanding-your-mapping.md",
+  ] },
+  { "Features" = [
+    "Configuration.md",
+    "Configuration-validation.md",
+    "Dependency-injection.md",
+    "Projection.md",
+    "Nested-mappings.md",
+    "Lists-and-arrays.md",
+    "Construction.md",
+    "Flattening.md",
+    "Reverse-Mapping-and-Unflattening.md",
+    "Mapping-inheritance.md",
+    "Attribute-mapping.md",
+    "Dynamic-and-ExpandoObject-Mapping.md",
+    "Open-Generics.md",
+    "Queryable-Extensions.md",
+    "Expression-Translation-(UseAsDataSource).md",
+    "Enum-Mapping.md",
+  ] },
+  { "Extensibility" = [
+    "Custom-type-converters.md",
+    "Custom-value-resolvers.md",
+    "Conditional-mapping.md",
+    "Null-substitution.md",
+    "Value-converters.md",
+    "Value-transformers.md",
+    "Before-and-after-map-actions.md",
+  ] },
+  { "Upgrading" = [
+    "API-Changes.md",
+    "13.0-Upgrade-Guide.md",
+    "12.0-Upgrade-Guide.md",
+    "11.0-Upgrade-Guide.md",
+    "10.0-Upgrade-Guide.md",
+    "9.0-Upgrade-Guide.md",
+    "8.1.1-Upgrade-Guide.md",
+    "8.0-Upgrade-Guide.md",
+    "5.0-Upgrade-Guide.md",
+  ] },
+]
+
+# ForkForward colours: navy and the red of the origin node (assets/brand/README.md).
+extra_css = ["stylesheets/extra.css"]
+
+[project.theme]
+language = "en"
+logo = "img/logo.png"
+favicon = "img/logo.png"
+features = [
+  "announce.dismiss",
+  "content.action.edit",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+primary = "custom"
+accent = "custom"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+[[project.extra.social]]
+icon = "fontawesome/brands/github"
+link = "https://github.com/ForkForward/dotnet-mapper"
+name = "Source code on GitHub"
+
+[[project.extra.social]]
+icon = "simple/nuget"
+link = "https://www.nuget.org/packages/ForkForward.Mapper"
+name = "ForkForward.Mapper on nuget.org"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.emoji.emoji_generator = "zensical.extensions.emoji.to_svg"
+pymdownx.emoji.emoji_index = "zensical.extensions.emoji.twemoji"
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.magiclink = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.superfences.custom_fences = [
+  { name = "mermaid", class = "mermaid", format = "pymdownx.superfences.fence_code_format" },
+]
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}

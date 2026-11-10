@@ -1,3 +1,2 @@
-sphinx==7.4.7
-sphinx-rtd-theme==1.3.0
-myst_parser==2.0.0
+# The documentation site generator. Dependabot proposes newer versions (see .github/dependabot.yml).
+zensical==0.1.0

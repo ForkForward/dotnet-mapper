@@ -75,7 +75,7 @@ var fooDto = mapper.Map<FooDto>(foo);
 var barDto = mapper.Map<BarDto>(bar);
 ```
 
-The documentation inherited from AutoMapper is in [docs/source](docs/source), starting with [Getting started](docs/source/Getting-started.md). It still describes this code, because the API has not changed.
+The documentation inherited from AutoMapper is published at [forkforward.dev/dotnet-mapper](https://forkforward.dev/dotnet-mapper/). Its source is in [docs/source](docs/source), starting with [Getting started](docs/source/Getting-started.md). It still describes this code, because the API has not changed.
 
 ## Building
 
