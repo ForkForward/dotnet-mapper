@@ -968,7 +968,7 @@ namespace ForkForward.Mapper.UnitTests
                 cfg.AddMaps(typeof(When_specifying_as_proxy_via_attribute));
             });
 
-            [Fact]
+            [NeedsDynamicCodeFact]
             public void Should_convert_to_interface()
             {
                 var source = new Source { Value = 15 };

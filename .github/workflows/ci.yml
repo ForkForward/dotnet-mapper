@@ -66,3 +66,53 @@ jobs:
         path: |
           artifacts/TestResults/**
           artifacts/package/**
+  # The unit tests once more, the way the library runs where the runtime cannot generate code: mapping plans
+  # are expression trees, and there they are interpreted instead of compiled. The tests that cannot pass that
+  # way are marked in the sources and listed in docs/source/Native-AOT-and-trimming.md.
+  interpreted:
+    name: test, plans interpreted (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+    - name: Unit tests with dynamic code switched off
+      run: dotnet test src/UnitTests -c Release -p:DynamicCodeSupport=false
+      env:
+        # Makes the run fail if the switch above did not reach the tests.
+        FORKFORWARD_TEST_EXPECT_INTERPRETED: 'true'
+  # The tests that need no database once more, built with the .NET 11 SDK and run on the .NET 11 runtime.
+  # The build job above stays on .NET 10; this one says early when the next .NET breaks something.
+  dotnet11:
+    name: test, .NET 11 (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    env:
+      # Makes the run fail if the tests ran on another runtime than the one named here.
+      FORKFORWARD_TEST_EXPECT_RUNTIME: '11'
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        fetch-depth: 0
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 11.0.x
+    # The test projects target net10.0; RollForward lets them start on the newest runtime installed.
+    - name: Unit tests
+      run: dotnet test src/UnitTests -c Release -p:RollForward=LatestMajor
+    - name: Dependency injection tests
+      run: dotnet test src/ForkForward.Mapper.DI.Tests -c Release -p:RollForward=LatestMajor

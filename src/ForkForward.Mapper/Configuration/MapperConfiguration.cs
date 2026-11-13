@@ -1,5 +1,6 @@
 namespace ForkForward.Mapper;
 using Features;
+using System.Diagnostics.CodeAnalysis;
 using Internal.Mappers;
 using QueryableExtensions.Impl;
 public interface IConfigurationProvider
@@ -56,6 +57,8 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     private readonly ParameterReplaceVisitor _parameterReplaceVisitor = new();
     private readonly ConvertParameterReplaceVisitor _convertParameterReplaceVisitor = new();
     private readonly List<Type> _typesInheritance = [];
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public MapperConfiguration(MapperConfigurationExpression configurationExpression)
     {
         _configurationExpression=configurationExpression;
@@ -148,6 +151,8 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             return executionPlan.Compile(); // breakpoint here to inspect all execution plans
         }
     }
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public MapperConfiguration(Action<IMapperConfigurationExpression> configure) : this(Build(configure)){}
     static MapperConfigurationExpression Build(Action<IMapperConfigurationExpression> configure)
     {

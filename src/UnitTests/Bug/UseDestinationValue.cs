@@ -190,7 +190,7 @@ public class DontUseDestinationValue : NonValidatingSpecBase
         cfg.CreateMap(typeof(CollectionDTOController<,>), typeof(CollectionController<,,>), MemberList.None);
     });
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.ErrorNotWrapped)]
     public void Should_report_missing_constructor()
     {
         var branchDto = new BranchDTO { ID = 51, Name = "B1" };

@@ -4,7 +4,7 @@ namespace ForkForward.Mapper.UnitTests.Bug;
 
 public class NullConstructorParameterName
 {
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void ShouldBeSkipped()
     {
         var proxy = CreateDynamicObject();

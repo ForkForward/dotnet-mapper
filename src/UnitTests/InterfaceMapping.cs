@@ -116,7 +116,7 @@ public class GenericsAndInterfaces : AutoMapperSpecBase
         destination.Container.MyProperty.ShouldBe(3);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void ShouldMapToNewObject()
     {
         var destination = (IMyInterface<ContainerClass>) Mapper.Map(source, typeof(MyClass<ContainerClass>), typeof(IMyInterface<ContainerClass>));
@@ -176,7 +176,7 @@ public class When_mapping_generic_interface : AutoMapperSpecBase
                 .ForMember("PropertyToMap", o=>o.Ignore())
                 .AsProxy());
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_work()
     {
         var source = new Source<String>{"Cat", "Dog"};
@@ -207,7 +207,7 @@ public class When_mapping_an_interface_with_getter_only_member : AutoMapperSpecB
 
     protected override MapperConfiguration CreateConfiguration() => new(c=>c.CreateMap<ISource, IDestination>().AsProxy());
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void ShouldMapOk()
     {
         Mapper.Map<IDestination>(new Source { Id = 5 }).Id.ShouldBe(5);
@@ -397,20 +397,20 @@ public class When_mapping_a_concrete_type_to_an_interface_type : AutoMapperSpecB
         _result = Mapper.Map<Source, IDestination>(new Source {Value = 5, Value1 = 50});
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_create_an_implementation_of_the_interface()
     {
         _result.Value.ShouldBe(5);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_apply_rules_after_proxying()
     {
         _result.Value2.ShouldBe(50);
         _result.Value3.ShouldBe("value 3");
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_not_derive_from_INotifyPropertyChanged()
     {
         _result.ShouldNotBeOfType<INotifyPropertyChanged>();
@@ -460,14 +460,14 @@ public class When_mapping_an_interface_type_to_an_interface_type_and_reverse : A
     protected override MapperConfiguration CreateConfiguration() => new(cfg =>
         cfg.CreateMap<ISource, IDestination>().AsProxy().ReverseMap().AsProxy());
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_create_an_implementation_of_the_destination_interface()
     {
         var destination = Mapper.Map<ISource, IDestination>(new Source {Value = 5});
         destination.Value.ShouldBe(5);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_map_implementation_of_the_interface_to_the_proxied_implementation()
     {
         var destination = Mapper.Map<ISource, IDestination>(new Source {Value = 5});
@@ -493,14 +493,14 @@ public class When_mapping_a_concrete_type_to_an_interface_type_and_reverse : Aut
     protected override MapperConfiguration CreateConfiguration() => new(cfg =>
         cfg.CreateMap<Source, IDestination>().AsProxy().ReverseMap());
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_create_an_implementation_of_the_destination_interface()
     {
         var destination = Mapper.Map<Source, IDestination>(new Source {Value = 5});
         destination.Value.ShouldBe(5);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_map_implementation_of_the_interface_to_the_class()
     {
         var destination = Mapper.Map<Source, IDestination>(new Source {Value = 5});
@@ -533,20 +533,20 @@ public class When_mapping_a_concrete_type_to_an_interface_type_that_derives_from
         _result = Mapper.Map<Source, IDestination>(new Source {Value = 5});
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_create_an_implementation_of_the_interface()
     {
         _result.Value.ShouldBe(5);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_derive_from_INotifyPropertyChanged()
     {
         var q = _result as INotifyPropertyChanged;
         q.ShouldNotBeNull();
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_notify_property_changes()
     {
         var count = 0;
@@ -561,7 +561,7 @@ public class When_mapping_a_concrete_type_to_an_interface_type_that_derives_from
         _result.Value.ShouldBe(42);
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_detach_event_handler()
     {
         _result.PropertyChanged += MyHandler;

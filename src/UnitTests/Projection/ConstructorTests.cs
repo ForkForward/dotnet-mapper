@@ -47,7 +47,7 @@ public class ConstructorLetClause : AutoMapperSpecBase
         cfg.CreateProjection<SourceItem, DestinationItem>().ForCtorParam("destinationValue", o=>o.MapFrom(s=>s.Values.FirstOrDefault()));
         cfg.CreateProjection<SourceValue, DestinationValue>();
     });
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_construct_correctly()
     {
         var query = new[] { new Source { Items = new[] { new SourceItem { Values = new[] { new SourceValue { Value1 = 1, Value2 = 2 } } } } } }.AsQueryable().ProjectTo<Destination>(Configuration);

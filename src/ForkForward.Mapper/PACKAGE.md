@@ -25,6 +25,10 @@ That is all: the types, their members and the behaviour are those of AutoMapper 
 - Security fixes written independently from the public advisories; so far [CVE-2026-32933](https://github.com/ForkForward/dotnet-mapper/blob/master/docs/security/CVE-2026-32933.md).
 - Builds and tests on current .NET SDKs, on Windows and Linux; every change is measured against the previous release and must not be slower or allocate more.
 
+## Native AOT and trimming
+
+Not supported. A project that is published trimmed or with Native AOT gets the warnings `IL2026` and `IL3050` where it creates a mapper configuration. Details: https://forkforward.dev/dotnet-mapper/Native-AOT-and-trimming/
+
 ## Links
 
 - Documentation: https://forkforward.dev/dotnet-mapper/
