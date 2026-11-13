@@ -19,6 +19,12 @@ public static class ExpressionBuilder
     static readonly MethodCallExpression CheckContextCall = Expression.Call(
         typeof(ResolutionContext).GetStaticMethod(nameof(ResolutionContext.CheckContext)), ContextParameter);
     static readonly MethodInfo ContextMapMethod = typeof(ResolutionContext).GetInstanceMethod(nameof(ResolutionContext.MapInternal));
+    // The exception a mapping plan throws when mapping a member fails. It lives here and not in TypeMapPlanBuilder,
+    // which is a ref struct: where plans are interpreted instead of compiled (Native AOT, or any runtime without
+    // dynamic code), a plan calls its methods through reflection, and reflection cannot invoke a method declared
+    // on a ref struct. Every mapping error then surfaced as a NotSupportedException instead of this exception.
+    internal static AutoMapperMappingException MemberMappingError(Exception innerException, MemberMap memberMap) =>
+        new("Error mapping types.", innerException, memberMap);
     // The filter of the catch that wraps a mapping error; see WrapsException. A filter runs while the exception is
     // still looking for its handler, so the levels it says no to are left in a single pass, without their handlers
     // running; it costs nothing until an exception is thrown.

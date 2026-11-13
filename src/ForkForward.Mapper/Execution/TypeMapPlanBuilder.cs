@@ -1,7 +1,7 @@
 namespace ForkForward.Mapper.Execution;
 public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap typeMap)
 {
-    static readonly MethodInfo MappingError = typeof(TypeMapPlanBuilder).GetStaticMethod(nameof(MemberMappingError));
+    static readonly MethodInfo MappingError = typeof(ExpressionBuilder).GetStaticMethod(nameof(MemberMappingError));
     static readonly MethodInfo IncTypeDepthInfo = typeof(ResolutionContext).GetInstanceMethod(nameof(ResolutionContext.IncrementTypeDepth));
     static readonly MethodInfo DecTypeDepthInfo = typeof(ResolutionContext).GetInstanceMethod(nameof(ResolutionContext.DecrementTypeDepth));
     static readonly MethodInfo CacheDestinationMethod = typeof(ResolutionContext).GetInstanceMethod(nameof(ResolutionContext.CacheDestination));
@@ -16,7 +16,6 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     List<Expression> _expressions = configuration.Expressions;
     CatchBlock[] _catches = configuration.Catches;
     public Type DestinationType => _destination.Type;
-    private static AutoMapperMappingException MemberMappingError(Exception innerException, MemberMap memberMap) => new("Error mapping types.", innerException, memberMap);
     ParameterExpression[] GetParameters(ParameterExpression first = null, ParameterExpression second = null)
     {
         _parameters[0] = first ?? _source;

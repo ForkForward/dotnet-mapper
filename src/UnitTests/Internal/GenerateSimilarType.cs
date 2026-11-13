@@ -28,7 +28,7 @@ public class GenerateSimilarType
         public Article Article { get; set; }
     }
 
-    [Fact]
+    [NeedsDynamicCodeFact]
     public void Should_work()
     {
         var extraProperties = typeof(ExtraProduct).GetProperties().Except(typeof(Product).GetProperties()).Select(p => new PropertyDescription(p));

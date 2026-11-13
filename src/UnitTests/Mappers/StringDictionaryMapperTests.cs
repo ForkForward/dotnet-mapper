@@ -177,7 +177,7 @@ public class When_mapping_from_StringDictionary_multiple_matching_keys : NonVali
         _source = new StringDictionary() { { " Foo", "Foo1" }, { "  Foo", "Foo2" }, { "Bar", "Bar" }, { "Baz", 2 } };
     }
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.ErrorNotWrapped)]
     public void Should_throw_when_mapping()
     {
         Should.Throw<AutoMapperMappingException>(() =>
@@ -316,7 +316,7 @@ public class When_mapping_from_StringDictionary_to_abstract_type : AutoMapperSpe
 
     protected override MapperConfiguration CreateConfiguration() => new(c => c.CreateMap<SomeBase, SomeBase>());
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.ErrorNotWrapped)]
     public void Should_throw()
     {
         new Action(() => Mapper.Map<SomeBase>(new StringDictionary()))

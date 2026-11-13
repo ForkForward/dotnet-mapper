@@ -336,7 +336,7 @@ public class ForPathWithValueTypesAndFields : AutoMapperSpecBase
             .ForPath(o => o.CustomerHolder.Customer.Total, o => o.MapFrom(s => s.Total));
     });
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.ValueTypePath)]
     public void Should_unflatten()
     {
         var dto = new OrderDto { CustomerName = "George Costanza", Total = 74.85m };

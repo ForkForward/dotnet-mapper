@@ -60,6 +60,17 @@ dotnet test src/UnitTests
 dotnet test src/ForkForward.Mapper.DI.Tests
 ```
 
+CI runs these tests two more ways, and both can be run locally:
+
+```powershell
+# Dynamic code switched off: mapping plans are interpreted instead of compiled, as on a runtime that cannot generate code.
+dotnet test src/UnitTests -p:DynamicCodeSupport=false
+# On the newest .NET runtime installed, instead of the .NET 10 the tests target.
+dotnet test src/UnitTests -p:RollForward=LatestMajor
+```
+
+A test that cannot pass with interpreted plans is marked `[NeedsDynamicCodeFact]` (it generates a type at run time) or `[CompiledPlansFact(reason)]` (a known difference) instead of `[Fact]`, and is skipped in that run; see `src/UnitTests/InterpretedPlans.cs`. A new difference goes into [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md) too.
+
 ## Performance
 
 The library must not get slower, or allocate more memory, than the last release. `Benchmark.ps1` checks it:

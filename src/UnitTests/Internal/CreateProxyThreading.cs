@@ -4,7 +4,7 @@ namespace ForkForward.Mapper.UnitTests;
 
 public class CreateProxyThreading
 {
-    [Fact]
+    [NeedsDynamicCodeFact]
     public async Task Should_create_the_proxy_once()
     {
         var tasks = Enumerable.Range(0, 5).Select(i => Task.Factory.StartNew(() =>

@@ -87,7 +87,7 @@ public class DeeplyNestedSourceGraphs
         exception.ShouldBeAssignableTo<AutoMapperMappingException>().Message.ShouldContain("nested too deeply", Case.Sensitive);
     }
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.NeedsMoreStack)]
     public void An_error_deep_in_a_graph_that_fits_is_reported_instead_of_ending_the_process()
     {
         // Each level used to catch the error, wrap it and throw it again, and each of those handlers ran on top of the

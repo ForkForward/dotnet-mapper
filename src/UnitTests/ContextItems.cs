@@ -89,7 +89,7 @@ public class When_mapping_with_contextual_values_wrong_overload : AutoMapperSpec
             .ForMember(d => d.Value, opt => opt.MapFrom((src, d, member, ctxt) => { ctxt.Items["Item"] = 2; return -1; }));
     });
 
-    [Fact]
+    [CompiledPlansFact(CompiledPlansFactAttribute.ErrorNotWrapped)]
     public void Should_report_error()
     {
         new Action(() => Mapper.Map<Source, Dest>(new Source { Value = 5 })).ShouldThrowException<AutoMapperMappingException>(ex =>
