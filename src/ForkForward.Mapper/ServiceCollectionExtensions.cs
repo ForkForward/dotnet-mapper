@@ -1,6 +1,7 @@
 ﻿namespace Microsoft.Extensions.DependencyInjection;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Reflection;
 using ForkForward.Mapper;
@@ -22,40 +23,64 @@ using Microsoft.Extensions.Options;
 public static class ServiceCollectionExtensions
 {
     static readonly Type[] AmTypes = [typeof(IValueResolver<,,>), typeof(IMemberValueResolver<,,,>), typeof(ITypeConverter<,>), typeof(IValueConverter<,>), typeof(IMappingAction<,>)];
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction)
         => AddAutoMapperClasses(services, (sp, cfg) => configAction?.Invoke(cfg), null);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, params Assembly[] assemblies)
         => AddAutoMapperClasses(services, null, assemblies);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction, params Assembly[] assemblies)
         => AddAutoMapperClasses(services, (sp, cfg) => configAction?.Invoke(cfg), assemblies);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IServiceProvider, IMapperConfigurationExpression> configAction, params Assembly[] assemblies)
         => AddAutoMapperClasses(services, configAction, assemblies);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction, IEnumerable<Assembly> assemblies, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
         => AddAutoMapperClasses(services, (sp, cfg) => configAction?.Invoke(cfg), assemblies, serviceLifetime);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IServiceProvider, IMapperConfigurationExpression> configAction, IEnumerable<Assembly> assemblies, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
         => AddAutoMapperClasses(services, configAction, assemblies, serviceLifetime);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, IEnumerable<Assembly> assemblies, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
         => AddAutoMapperClasses(services, null, assemblies, serviceLifetime);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, params Type[] profileAssemblyMarkerTypes)
         => AddAutoMapperClasses(services, null, profileAssemblyMarkerTypes.Select(t => t.GetTypeInfo().Assembly));
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction, params Type[] profileAssemblyMarkerTypes)
         => AddAutoMapperClasses(services, (sp, cfg) => configAction?.Invoke(cfg), profileAssemblyMarkerTypes.Select(t => t.GetTypeInfo().Assembly));
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IServiceProvider, IMapperConfigurationExpression> configAction, params Type[] profileAssemblyMarkerTypes)
         => AddAutoMapperClasses(services, configAction, profileAssemblyMarkerTypes.Select(t => t.GetTypeInfo().Assembly));
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction,
         IEnumerable<Type> profileAssemblyMarkerTypes, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
         => AddAutoMapperClasses(services, (sp, cfg) => configAction?.Invoke(cfg), profileAssemblyMarkerTypes.Select(t => t.GetTypeInfo().Assembly), serviceLifetime);
 
+    [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
+    [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IServiceProvider, IMapperConfigurationExpression> configAction,
         IEnumerable<Type> profileAssemblyMarkerTypes, ServiceLifetime serviceLifetime = ServiceLifetime.Transient)
         => AddAutoMapperClasses(services, configAction, profileAssemblyMarkerTypes.Select(t => t.GetTypeInfo().Assembly), serviceLifetime);
