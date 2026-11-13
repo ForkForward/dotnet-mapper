@@ -33,6 +33,7 @@ nav = [
     "Setup.md",
     "Moving-from-AutoMapper-14.md",
     "Understanding-your-mapping.md",
+    "Native-AOT-and-trimming.md",
   ] },
   { "Features" = [
     "Configuration.md",
@@ -49,6 +50,7 @@ nav = [
     "Dynamic-and-ExpandoObject-Mapping.md",
     "Open-Generics.md",
     "Queryable-Extensions.md",
+    "Asynchronous-code.md",
     "Expression-Translation-(UseAsDataSource).md",
     "Enum-Mapping.md",
   ] },

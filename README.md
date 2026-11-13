@@ -47,6 +47,7 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
   ```
 
 - The assembly is `ForkForward.Mapper.dll` and the namespaces start with `ForkForward.Mapper`; the types, their members and the behaviour are those of AutoMapper 14.0.0. Moving a project is a package reference and a `using` directive: [Moving from AutoMapper 14](docs/source/Moving-from-AutoMapper-14.md). Type names that carry the old name, such as `AutoMapperMappingException` and `AddAutoMapper`, are unchanged.
+- Native AOT and trimming are not supported, and from the next release the build warns when a trimmed or Native AOT application creates a mapper configuration. What happens if you try is in [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md).
 - Security fixes are written here independently, from the public advisory and this code. Fixed so far: [CVE-2026-32933](docs/security/CVE-2026-32933.md), a source graph nested deeper than the thread's stack allows crashed the process; it now ends in an `AutoMapperMappingException`. Vulnerability scanners know this package as `ForkForward.Mapper`, not `AutoMapper`, so check that page rather than the official advisory for what is fixed here.
 
 ## Using it

@@ -25,6 +25,7 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 - [ ] Publish a GitHub security advisory for `ForkForward.Mapper` up to 14.1.0-preview.3, so that scanners flag the old previews (repository Security tab; only a maintainer can do this)
 - [x] ~~Make the API comparison a hard gate~~ Removed with the namespace rename in 14.1.0: the comparison with the `AutoMapper` assembly no longer applies. Replacement planned in phase 3
 - [x] Tests, benchmark and sample app target `net10.0`; CI builds with the .NET 10 SDK only
+- [x] The unit tests also run with mapping plans interpreted (dynamic code switched off), and built with the .NET 11 SDK on the .NET 11 runtime, on Windows and Ubuntu. Both are new CI jobs, to be added when the checks are made required
 - [x] Solution in the `.slnx` format; build output in the artifacts layout
 - [ ] Decide which .NET versions the library targets (today `net8.0`)
 - [x] Review the inherited documentation for references to infrastructure that the fork does not have (the MyGet page removed, the index points at this fork's NuGet package, changelog and issues)
@@ -48,6 +49,9 @@ Release steps for the next version: merge what goes in; push the tag `v<version>
 ## Phase 3: beyond the first release
 
 - [ ] **Decision needed: type names that carry the old name.** `AutoMapperMappingException`, `AutoMapperConfigurationException`, `AutoMapAttribute`, `AddAutoMapper`. Renaming them completes the identity change but breaks source compatibility; the usual way is new names with the old ones kept as `[Obsolete]` forwarders for a release or two.
+- [ ] **Decision needed: Native AOT and trimming.** Not supported today. The build says so, and [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md) has what was measured: nothing works without keeping assemblies from trimming by hand, 16 of 25 scenarios with it, plans interpreted and several times slower. Supporting it means annotating the public API so that mapped types survive trimming, keeping the library's own reflection targets, a clear error for interface proxies, and a Native AOT test in CI; plans would still be interpreted. Real ahead-of-time speed would need generated code instead of expression trees, which is a different library
+- [ ] Under Native AOT a deeply nested source graph ends the process, although the fix for CVE-2026-32933 holds everywhere else ([docs/security/CVE-2026-32933.md](docs/security/CVE-2026-32933.md#native-aot)). Find the cause, whatever is decided about Native AOT
+- [ ] Differences when plans are interpreted: an error from a member that maps through the context is not wrapped, and `ForPath` through fields of nested value types does not set the values. Find out whether they can be fixed here; the tests are marked `CompiledPlansFact`
 - [ ] Compare the public API with the previous ForkForward.Mapper release on every pull request (for example with `Microsoft.DotNet.ApiCompat.Tool`), replacing the comparison with AutoMapper 14.0.0 that the rename made obsolete
 - [x] Publish the documentation: [forkforward.dev/dotnet-mapper](https://forkforward.dev/dotnet-mapper/), built with Zensical from `docs/source` and published by the Docs workflow on every change to `master`
 - [x] No separate dependency injection package or repository: `AddAutoMapper` has been part of the main library since before the fork point (`src/AutoMapper/ServiceCollectionExtensions.cs`)

@@ -2,6 +2,26 @@
 
 All notable changes to ForkForward.Mapper. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) and continue AutoMapper's 14.x line, which is the code this fork starts from.
 
+## [Unreleased]
+
+### Fixed
+
+- **A mapping error is reported as itself where mapping plans are interpreted.** On a runtime that cannot generate code, plans are interpreted instead of compiled, and there every error while mapping a member surfaced as `NotSupportedException: Specified method is not supported` instead of an `AutoMapperMappingException` that names the member. The plan created the exception with a method declared on a `ref struct`, which reflection cannot invoke. Inherited from AutoMapper 14. Applications whose plans are compiled, which is the ordinary case, were not affected.
+
+### Changed
+
+- **The build warns when a trimmed or Native AOT application creates a mapper configuration.** The constructors of `MapperConfiguration` and every `AddAutoMapper` overload carry `RequiresUnreferencedCode` and `RequiresDynamicCode`. The library does not support trimming or Native AOT; until now such an application built without a word about it and failed when it started. No signature changed, and a project that is not trimmed or compiled ahead of time sees nothing new; a default Blazor WebAssembly application was checked and gets no warning. A library that switches the trim or AOT analyzers on and creates a mapper configuration gets `IL2026` and `IL3050` there.
+
+### Documentation
+
+- New page [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md): neither is supported, what was measured when it was tried, and what differs on a runtime without dynamic code.
+- New page [Asynchronous code](docs/source/Asynchronous-code.md): why mapping is synchronous, and how to combine it with code that awaits.
+- [CVE-2026-32933](docs/security/CVE-2026-32933.md): the fix does not hold in an application compiled with Native AOT; a deeply nested source graph ends the process there.
+
+### Infrastructure
+
+- CI runs the unit tests twice more on Windows and Ubuntu: with dynamic code switched off, so that mapping plans are interpreted, and built with the .NET 11 SDK on the .NET 11 runtime.
+
 ## [14.1.1] - 2026-11-10
 
 A packaging release: the package points at the new documentation site. The library is the same as in 14.1.0; there are no changes to the code.
@@ -47,6 +67,7 @@ First preview on nuget.org: AutoMapper 14.0.0 plus three commits, rebranded as a
 
 The code starts at commit [`92816585`](https://github.com/AutoMapper/AutoMapper.Archive/commit/928165859deaf9a59c4433771b3c58a9536284dd) of the AutoMapper repository, which is release 14.0.0 plus three commits, under the MIT licence. Its history is in [docs/source](docs/source) (the upgrade guides) and in the [AutoMapper release notes](https://github.com/AutoMapper/AutoMapper.Archive/releases).
 
+[Unreleased]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.1...HEAD
 [14.1.1]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0...v14.1.1
 [14.1.0]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.3...v14.1.0
 [14.1.0-preview.3]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.2...v14.1.0-preview.3
