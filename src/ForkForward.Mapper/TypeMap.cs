@@ -249,6 +249,15 @@ public sealed class TypeMap
         Details.SealError = ExceptionDispatchInfo.Capture(exception);
         return false;
     }
+    internal bool IsSealed => _sealed;
+    // The maps Seal seals before this one: the maps it inherits from and the maps of its included members.
+    internal TypeMap[] GetMapsToSealFirst()
+    {
+        var inheritedTypeMaps = _details?.InheritedTypeMaps;
+        var includedMembersTypeMaps = _details?.IncludedMembersTypeMaps;
+        return inheritedTypeMaps == null && includedMembersTypeMaps == null ? [] :
+            [..inheritedTypeMaps.NullCheck(), ..includedMembersTypeMaps.NullCheck().Select(includedMember => includedMember.TypeMap)];
+    }
     public List<PropertyMap> OrderedPropertyMaps()
     {
         if (HasMappingOrder())

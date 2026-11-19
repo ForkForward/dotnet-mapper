@@ -15,6 +15,8 @@ public abstract class TypeMapConfiguration(MemberList memberList, TypePair types
     public TypePair Types => _types;
     public bool IsReverseMap { get; set; }
     public bool HasTypeConverter { get; protected set; }
+    // Set when ProfileMap configures the type map of this configuration: in its turn, or before it for a map that had to be sealed earlier.
+    internal bool Configured { get; set; }
     public TypeMap TypeMap { get; private set; }
     public Type SourceType => _types.SourceType;
     public Type DestinationType => _types.DestinationType;

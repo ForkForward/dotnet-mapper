@@ -47,6 +47,7 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     private readonly MapperConfigurationExpression _configurationExpression;
     private readonly Features<IRuntimeFeature> _features = new();
     private readonly bool _hasOpenMaps;
+    private bool _configuringProfiles;
     private readonly bool _polymorphicProjection;
     private readonly HashSet<TypeMap> _typeMapsPath = [];
     private readonly List<MemberInfo> _sourceMembers = [];
@@ -117,10 +118,12 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             {
                 profile.Register(this);
             }
+            _configuringProfiles = true;
             foreach (var profile in Profiles)
             {
                 profile.Configure(this);
             }
+            _configuringProfiles = false;
             IGlobalConfiguration globalConfiguration = this;
             List<TypeMap> derivedMaps = [];
             foreach (var typeMap in _configuredMaps.Values)
@@ -319,6 +322,10 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             _resolvedMaps.Add(typePair, typeMap);
             if (typeMap != null && typeMap.MapExpression == null)
             {
+                if (_configuringProfiles)
+                {
+                    ConfigureMapsToSeal(typeMap, null);
+                }
                 typeMap.Seal(this);
             }
         }
@@ -335,6 +342,27 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             }
         }
         return typeMap;
+    }
+    // An include can ask for a closed generic map while the profiles are still being configured: the map is created from the open generic
+    // configuration and sealed on the spot, and sealing it seals the maps it inherits from and the maps of its included members. One of those
+    // that is registered after the map with the include has not been configured at that point, and its turn would come after its plan was built.
+    // So it gets its turn here. Which maps are sealed, and when, stays as it was.
+    void ConfigureMapsToSeal(TypeMap typeMap, HashSet<TypeMap> visited)
+    {
+        foreach (var mapToSeal in typeMap.GetMapsToSealFirst())
+        {
+            if (mapToSeal.IsSealed)
+            {
+                continue;
+            }
+            visited ??= [typeMap];
+            if (!visited.Add(mapToSeal))
+            {
+                continue;
+            }
+            mapToSeal.Profile.ConfigureBeforeItsTurn(mapToSeal, this);
+            ConfigureMapsToSeal(mapToSeal, visited);
+        }
     }
     private TypeMap GetTypeMap(TypePair initialTypes)
     {
@@ -461,11 +489,12 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             return [];
         }
         var typeMaps = new TypeMap[includedTypes.Count];
-        int index = 0;
-        foreach (var pair in includedTypes)
+        // By index, not with an enumerator: getting an included map can configure another map before its turn (ConfigureMapsToSeal),
+        // and that adds an include to the collection that is being read here.
+        var types = includedTypes as IReadOnlyList<TypePair> ?? [..includedTypes];
+        for (int index = 0; index < typeMaps.Length; index++)
         {
-            typeMaps[index] = GetIncludedTypeMap(pair);
-            index++;
+            typeMaps[index] = GetIncludedTypeMap(types[index]);
         }
         return typeMaps;
     }

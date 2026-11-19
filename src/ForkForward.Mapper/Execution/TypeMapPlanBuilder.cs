@@ -72,11 +72,48 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     }
     void IncludeMembers()
     {
+        var nestedIncludedMembers = false;
         foreach (var includedMap in _typeMap.IncludedMembersTypeMaps)
         {
             var variable = includedMap.Variable;
             _variables.Add(variable);
             _expressions.Add(Assign(variable, _configuration.ReplaceParameters(includedMap.MemberExpression, _source).NullCheck(null)));
+            nestedIncludedMembers |= includedMap.TypeMap.IncludedMembersTypeMaps.Count > 0;
+        }
+        if (nestedIncludedMembers && UsesInheritedIncludedMembers())
+        {
+            foreach (var includedMap in _typeMap.IncludedMembersTypeMaps)
+            {
+                IncludeInheritedMembers(includedMap);
+            }
+        }
+    }
+    // A member that an included map got from an included member of its own comes with the variable of that member. ProfileMap.ApplyMemberMaps
+    // gives this map those variables, except for the included members the included map inherits (IncludeBase): it has them only once it is sealed.
+    // A map that has such a member gets the variables here; the plan of any other map stays as it was.
+    bool UsesInheritedIncludedMembers()
+    {
+        foreach (var memberMap in _typeMap.MemberMaps)
+        {
+            if (memberMap.IncludedMember is { } includedMember && !_variables.Contains(includedMember.Variable))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    void IncludeInheritedMembers(IncludedMember includedMap)
+    {
+        foreach (var inheritedMember in includedMap.TypeMap.IncludedMembersTypeMaps)
+        {
+            if (_variables.Contains(inheritedMember.Variable))
+            {
+                continue;
+            }
+            var chainedMember = includedMap.Chain(inheritedMember);
+            _variables.Add(chainedMember.Variable);
+            _expressions.Add(Assign(chainedMember.Variable, _configuration.ReplaceParameters(chainedMember.MemberExpression, _source).NullCheck(null)));
+            IncludeInheritedMembers(chainedMember);
         }
     }
     private static void CheckForCycles(IGlobalConfiguration configuration, TypeMap typeMap, HashSet<TypeMap> typeMapsPath)
