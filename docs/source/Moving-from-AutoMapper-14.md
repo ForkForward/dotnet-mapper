@@ -57,6 +57,7 @@ Also from the release that follows 14.1.1:
 
 - **Assembly identity.** The assembly is `ForkForward.Mapper.dll`, signed with the fork's own key (public key token `d1f0d2ab1c32618c`). A library compiled against `AutoMapper.dll` does not load against this assembly; it has to be recompiled against `ForkForward.Mapper`. Assembly binding redirects cannot bridge the two, as the names differ.
 - **Both packages at once.** `AutoMapper` and `ForkForward.Mapper` can be referenced in the same project without a conflict, since nothing overlaps, but a type from one is not the type from the other: an `IMapper` registered by `AutoMapper` does not satisfy a constructor that asks for `ForkForward.Mapper.IMapper`. Move a project as a whole.
+- **.NET version.** `14.1.0` and `14.1.1` target .NET 8, like AutoMapper 14, and run on every later .NET. From the release that follows 14.1.1 the package targets .NET 10 and .NET 11, the versions that are in support. An application on .NET 8 or .NET 9 cannot install that release: it stays on `14.1.1`, without the additions and fixes listed above, until it moves to .NET 10.
 - **Version numbers** continue from 14: `ForkForward.Mapper 14.1.0` is the first stable release. The previews `14.1.0-preview.2` and `14.1.0-preview.3` still used the `AutoMapper` names.
 
 ## Moving from AutoMapper 15 or later

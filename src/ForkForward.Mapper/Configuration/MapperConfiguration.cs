@@ -47,6 +47,7 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     private readonly MapperConfigurationExpression _configurationExpression;
     private readonly Features<IRuntimeFeature> _features = new();
     private readonly bool _hasOpenMaps;
+    private bool _configuringProfiles;
     private readonly bool _polymorphicProjection;
     private readonly HashSet<TypeMap> _typeMapsPath = [];
     private readonly List<MemberInfo> _sourceMembers = [];
@@ -117,10 +118,12 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             {
                 profile.Register(this);
             }
+            _configuringProfiles = true;
             foreach (var profile in Profiles)
             {
                 profile.Configure(this);
             }
+            _configuringProfiles = false;
             IGlobalConfiguration globalConfiguration = this;
             List<TypeMap> derivedMaps = [];
             foreach (var typeMap in _configuredMaps.Values)
@@ -150,6 +153,10 @@ public sealed class MapperConfiguration : IGlobalConfiguration
         Delegate CompileExecutionPlan(MapRequest mapRequest)
         {
             var executionPlan = ((IGlobalConfiguration)this).BuildExecutionPlan(mapRequest);
+            if (GetTypeMapExecutionPlan(mapRequest) is { } typeMapExecutionPlan)
+            {
+                return typeMapExecutionPlan;
+            }
             try
             {
                 return executionPlan.Compile(); // breakpoint here to inspect all execution plans
@@ -177,6 +184,14 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     public void CompileMappings()
     {
         foreach (var request in _resolvedMaps.Keys.Where(t => !t.ContainsGenericParameters).Select(types => new MapRequest(types)).ToArray())
+        {
+            GetExecutionPlan(request);
+        }
+        // A member that is not inlined into the plan of its map is mapped by a plan that is cached for that member
+        // (see MapRequest), not by the one compiled above for its types.
+        foreach (var request in _configuredMaps.Values.Where(typeMap => !typeMap.Projection && !typeMap.Types.ContainsGenericParameters)
+            .SelectMany(typeMap => typeMap.MemberMaps).Where(memberMap => memberMap.CanResolveValue && !memberMap.Inline)
+            .Select(memberMap => new MapRequest(memberMap.Types(), memberMap.Types(), memberMap)).ToArray())
         {
             GetExecutionPlan(request);
         }
@@ -280,6 +295,25 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     Func<TSource, TDestination, ResolutionContext, TDestination> IGlobalConfiguration.GetExecutionPlan<TSource, TDestination>(in MapRequest mapRequest)
         => (Func<TSource, TDestination, ResolutionContext, TDestination>)GetExecutionPlan(mapRequest);
     private Delegate GetExecutionPlan(in MapRequest mapRequest) => _executionPlans.GetOrAdd(mapRequest);
+    // The plans are cached per member (see MapRequest), because a built-in mapper builds its plan for the member.
+    // The plan of a type map is the same whichever member it is mapped for: it is compiled once, for the request
+    // without a member, and the requests of the members get that delegate. Null when the request is not such a one.
+    private Delegate GetTypeMapExecutionPlan(in MapRequest mapRequest)
+    {
+        if (!mapRequest.HasMember || (ResolveTypeMap(mapRequest.RuntimeTypes) ?? ResolveTypeMap(mapRequest.RequestedTypes)) == null)
+        {
+            return null;
+        }
+        try
+        {
+            return GetExecutionPlan(new(mapRequest.RequestedTypes, mapRequest.RuntimeTypes, null));
+        }
+        // The plan cannot be compiled. The request gets the error of its own plan, which names the member.
+        catch (AutoMapperMappingException)
+        {
+            return null;
+        }
+    }
     TypeMap IGlobalConfiguration.ResolveAssociatedTypeMap(TypePair types)
     {
         var typeMap = ResolveTypeMap(types);
@@ -319,6 +353,10 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             _resolvedMaps.Add(typePair, typeMap);
             if (typeMap != null && typeMap.MapExpression == null)
             {
+                if (_configuringProfiles)
+                {
+                    ConfigureMapsToSeal(typeMap, null);
+                }
                 typeMap.Seal(this);
             }
         }
@@ -335,6 +373,27 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             }
         }
         return typeMap;
+    }
+    // An include can ask for a closed generic map while the profiles are still being configured: the map is created from the open generic
+    // configuration and sealed on the spot, and sealing it seals the maps it inherits from and the maps of its included members. One of those
+    // that is registered after the map with the include has not been configured at that point, and its turn would come after its plan was built.
+    // So it gets its turn here. Which maps are sealed, and when, stays as it was.
+    void ConfigureMapsToSeal(TypeMap typeMap, HashSet<TypeMap> visited)
+    {
+        foreach (var mapToSeal in typeMap.GetMapsToSealFirst())
+        {
+            if (mapToSeal.IsSealed)
+            {
+                continue;
+            }
+            visited ??= [typeMap];
+            if (!visited.Add(mapToSeal))
+            {
+                continue;
+            }
+            mapToSeal.Profile.ConfigureBeforeItsTurn(mapToSeal, this);
+            ConfigureMapsToSeal(mapToSeal, visited);
+        }
     }
     private TypeMap GetTypeMap(TypePair initialTypes)
     {
@@ -461,11 +520,12 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             return [];
         }
         var typeMaps = new TypeMap[includedTypes.Count];
-        int index = 0;
-        foreach (var pair in includedTypes)
+        // By index, not with an enumerator: getting an included map can configure another map before its turn (ConfigureMapsToSeal),
+        // and that adds an include to the collection that is being read here.
+        var types = includedTypes as IReadOnlyList<TypePair> ?? [..includedTypes];
+        for (int index = 0; index < typeMaps.Length; index++)
         {
-            typeMaps[index] = GetIncludedTypeMap(pair);
-            index++;
+            typeMaps[index] = GetIncludedTypeMap(types[index]);
         }
         return typeMaps;
     }

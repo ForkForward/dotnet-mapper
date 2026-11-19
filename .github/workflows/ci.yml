@@ -30,8 +30,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        # The .NET 10 SDK builds everything, and the tests run on the .NET 10 runtime it brings.
-        dotnet-version: 10.0.x
+        # The library targets net10.0 and net11.0. The .NET 11 SDK builds both; the .NET 10 SDK is
+        # installed for its runtime, which everything that targets net10.0 runs on.
+        dotnet-version: |
+          10.0.x
+          11.0.x
     # The integration tests need a SQL Server. On Windows that is LocalDB.
     - name: Install SQL Server LocalDB (Windows)
       if: runner.os == 'Windows'
@@ -84,14 +87,18 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        dotnet-version: 10.0.x
+        # The library targets net10.0 and net11.0. The .NET 11 SDK builds both; the .NET 10 SDK is
+        # installed for its runtime, which everything that targets net10.0 runs on.
+        dotnet-version: |
+          10.0.x
+          11.0.x
     - name: Unit tests with dynamic code switched off
       run: dotnet test src/UnitTests -c Release -p:DynamicCodeSupport=false
       env:
         # Makes the run fail if the switch above did not reach the tests.
         FORKFORWARD_TEST_EXPECT_INTERPRETED: 'true'
-  # The tests that need no database once more, built with the .NET 11 SDK and run on the .NET 11 runtime.
-  # The build job above stays on .NET 10; this one says early when the next .NET breaks something.
+  # The net11.0 build of the library on its own, with only the .NET 11 SDK and runtime installed: what an
+  # application that has moved to .NET 11 has. The build job above runs both target frameworks side by side.
   dotnet11:
     name: test, .NET 11 (${{ matrix.os }})
     strategy:
@@ -111,8 +118,7 @@ jobs:
       uses: actions/setup-dotnet@v6
       with:
         dotnet-version: 11.0.x
-    # The test projects target net10.0; RollForward lets them start on the newest runtime installed.
     - name: Unit tests
-      run: dotnet test src/UnitTests -c Release -p:RollForward=LatestMajor
+      run: dotnet test src/UnitTests -c Release --framework net11.0
     - name: Dependency injection tests
-      run: dotnet test src/ForkForward.Mapper.DI.Tests -c Release -p:RollForward=LatestMajor
+      run: dotnet test src/ForkForward.Mapper.DI.Tests -c Release --framework net11.0

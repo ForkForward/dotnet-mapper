@@ -21,6 +21,8 @@ public sealed class MemberConfiguration
         }
         return nameToSearch.Length == 0 || _nameSplitMember.IsMatch(options, sourceTypeDetails, destType, destMemberType, nameToSearch, resolvers, isReverseMap);
     }
+    internal bool IsChainMatch(ProfileMap options, TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string nameToSearch, List<MemberInfo> resolvers, bool isReverseMap) =>
+        _nameSplitMember is ConventionsNameSplitMember conventions && conventions.IsChainMatch(options, sourceTypeDetails, destType, destMemberType, nameToSearch, resolvers, isReverseMap);
     public MemberInfo GetSourceMember(TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string nameToSearch)
     {
         var sourceMember = sourceTypeDetails.GetMember(nameToSearch);
@@ -180,9 +182,37 @@ public sealed class ConventionsNameSplitMember : NameSplitMember
         // as one word: Form, XML. Without a separator both readings give the same names, and there is nothing more to try.
         // Only the name of the destination member is read again: what is left of it after a source member was found
         // (resolvers) has been put together with the separator and is not in PascalCase.
-        return resolvers.Count == 0 && destinationNamingConvention is PascalCaseNamingConvention && !string.IsNullOrEmpty(separator) &&
-            PascalCaseNamingConvention.SplitRunsOfCapitals(nameToSearch) is { } words &&
-            IsMatch(options, sourceType, destType, destMemberType, words, separator, resolvers, isReverseMap);
+        if (resolvers.Count != 0)
+        {
+            return false;
+        }
+        var words = RunsOfCapitals(destinationNamingConvention, separator, nameToSearch);
+        return words != null && IsMatch(options, sourceType, destType, destMemberType, words, separator, resolvers, isReverseMap);
+    }
+    static string[] RunsOfCapitals(INamingConvention destinationNamingConvention, string separator, string nameToSearch) =>
+        destinationNamingConvention is PascalCaseNamingConvention && !string.IsNullOrEmpty(separator) ? PascalCaseNamingConvention.SplitRunsOfCapitals(nameToSearch) : null;
+    // Tried for the name of a destination member when IsMatch found nothing for it (ProfileMap.MapDestinationPropertyToSource),
+    // so that a name that was matched before is matched to the same members. IsMatch puts what is left of the name after a
+    // source member was found together with the separator of the source side and, when that is not a member of its type,
+    // splits it again with the convention of the destination side. With two different conventions it cannot be split:
+    // Address_City is not in PascalCase and addresscity has no underscore. So a chain of two source members is found there
+    // and a chain of three is not. Here the words of the destination member are followed as they are, in the one reading
+    // and then in the other. A chain of two is what IsMatch looks for: it takes three words to find another one.
+    internal bool IsChainMatch(ProfileMap options, TypeDetails sourceType, Type destType, Type destMemberType, string nameToSearch, List<MemberInfo> resolvers, bool isReverseMap)
+    {
+        var destinationNamingConvention = isReverseMap ? Parent.SourceNamingConvention : Parent.DestinationNamingConvention;
+        var matches = destinationNamingConvention.Split(nameToSearch);
+        if (matches.Length < 3)
+        {
+            return false;
+        }
+        var separator = (isReverseMap ? Parent.DestinationNamingConvention : Parent.SourceNamingConvention).SeparatorCharacter;
+        if (IsChain(options, sourceType, destType, destMemberType, matches, 0, separator, resolvers))
+        {
+            return true;
+        }
+        var words = RunsOfCapitals(destinationNamingConvention, separator, nameToSearch);
+        return words?.Length > 2 && IsChain(options, sourceType, destType, destMemberType, words, 0, separator, resolvers);
     }
     bool IsMatch(ProfileMap options, TypeDetails sourceType, Type destType, Type destMemberType, string[] matches, string separator, List<MemberInfo> resolvers, bool isReverseMap)
     {
@@ -197,6 +227,27 @@ public sealed class ConventionsNameSplitMember : NameSplitMember
                 var second = string.Join(separator, matches, index, length - index);
                 var details = options.CreateTypeDetails(matchingMemberInfo.GetMemberType());
                 if (Parent.IsMatch(options, details, destType, destMemberType, second, resolvers, isReverseMap))
+                {
+                    return true;
+                }
+                resolvers.RemoveAt(resolvers.Count - 1);
+            }
+        }
+        return false;
+    }
+    // The words from start on as a chain of source members: the first of them, put together with the separator, are a
+    // source member, and the words after them are a chain in the type of that member, down to the last word.
+    bool IsChain(ProfileMap options, TypeDetails sourceType, Type destType, Type destMemberType, string[] words, int start, string separator, List<MemberInfo> resolvers)
+    {
+        var length = words.Length;
+        for (var index = start + 1; index <= length; index++)
+        {
+            var first = string.Join(separator, words, start, index - start);
+            var matchingMemberInfo = Parent.GetSourceMember(sourceType, destType, destMemberType, first);
+            if (matchingMemberInfo != null)
+            {
+                resolvers.Add(matchingMemberInfo);
+                if (index == length || IsChain(options, options.CreateTypeDetails(matchingMemberInfo.GetMemberType()), destType, destMemberType, words, index, separator, resolvers))
                 {
                     return true;
                 }

@@ -41,8 +41,12 @@ public class PlanBuildingErrors
     sealed class ThrowingMapper(Exception error = null) : BrokenPairMapper
     {
         public Exception Error { get; } = error ?? new InvalidOperationException("The mapper cannot build this.");
-        public override Expression MapExpression(IGlobalConfiguration configuration, ProfileMap profileMap, MemberMap memberMap, Expression sourceExpression, Expression destExpression) =>
+        public int Calls { get; private set; }
+        public override Expression MapExpression(IGlobalConfiguration configuration, ProfileMap profileMap, MemberMap memberMap, Expression sourceExpression, Expression destExpression)
+        {
+            Calls++;
             throw Error;
+        }
     }
     // What it returns is not a BrokenDto, so the plan builder fails inside System.Linq.Expressions.
     sealed class WrongTypeMapper : BrokenPairMapper
@@ -208,6 +212,61 @@ public class PlanBuildingErrors
         exception.InnerException.ShouldBeSameAs(mapper.Error);
     }
 
+    // A path that ForPath gave a condition and no MapFrom has nothing to map from. Building its plan ended in a
+    // NullReferenceException: bare when the map was sealed on its own, and inside "Error building the mapping plan."
+    // for the member of the other map when it was sealed on the way through that map.
+    public class PlainPathDto { public PlainDto Inner { get; set; } }
+    public class PlainOuter { public Plain Inner { get; set; } }
+    public class PlainOuterDto { public PlainPathDto Inner { get; set; } }
+
+    static void PathWithoutMapFrom(IMapperConfigurationExpression cfg) =>
+        cfg.CreateMap<Plain, PlainPathDto>().ForPath(destination => destination.Inner.Value, o => o.Condition(parameters => parameters.Source.Value > 0));
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void A_path_without_MapFrom_says_so_and_names_the_map_and_the_path(bool asAMemberOfAnotherMap, bool otherMapFirst)
+    {
+        var exception = Should.Throw<AutoMapperConfigurationException>(() => new MapperConfiguration(cfg =>
+        {
+            if (asAMemberOfAnotherMap && otherMapFirst)
+            {
+                cfg.CreateMap<PlainOuter, PlainOuterDto>();
+            }
+            PathWithoutMapFrom(cfg);
+            if (asAMemberOfAnotherMap && !otherMapFirst)
+            {
+                cfg.CreateMap<PlainOuter, PlainOuterDto>();
+            }
+        }));
+
+        exception.Message.ShouldBe(
+            $"The path Inner.Value of the map from {typeof(Plain)} to {typeof(PlainPathDto)} has nothing to map from: ForPath was given no MapFrom for it. " +
+            "Add one, as in ForPath(destination => destination.Inner.Value, o => o.MapFrom(source => ...)), or ignore the path with o.Ignore().");
+    }
+
+    [Fact]
+    public void A_path_that_is_ignored_or_gets_its_MapFrom_from_another_ForPath_call_needs_none()
+    {
+        var ignored = new MapperConfiguration(cfg =>
+            cfg.CreateMap<Plain, PlainPathDto>().ForPath(destination => destination.Inner.Value, o => o.Ignore()));
+        var ignoredAfterTheCondition = new MapperConfiguration(cfg => cfg.CreateMap<Plain, PlainPathDto>().ForPath(destination => destination.Inner.Value, o =>
+        {
+            o.Condition(parameters => parameters.Source.Value > 0);
+            o.Ignore();
+        }));
+        var mappedByASecondCall = new MapperConfiguration(cfg => cfg.CreateMap<Plain, PlainPathDto>()
+            .ForPath(destination => destination.Inner.Value, o => o.Condition(parameters => parameters.Source.Value > 0))
+            .ForPath(destination => destination.Inner.Value, o => o.MapFrom(source => source.Value)));
+
+        // Unchanged, all three.
+        ignored.CreateMapper().Map<PlainPathDto>(new Plain { Value = 42 }).Inner.ShouldBeNull();
+        ignoredAfterTheCondition.CreateMapper().Map<PlainPathDto>(new Plain { Value = 42 }).Inner.ShouldBeNull();
+        mappedByASecondCall.CreateMapper().Map<PlainPathDto>(new Plain { Value = 42 }).Inner.Value.ShouldBe(42);
+        mappedByASecondCall.CreateMapper().Map<PlainPathDto>(new Plain { Value = -1 }).Inner.Value.ShouldBe(0);
+    }
+
     [Fact]
     public void A_constructor_parameter_names_the_map_and_the_parameter()
     {
@@ -366,6 +425,68 @@ public class PlanBuildingErrors
 
         ShouldName<Wrapper<Broken>, WrapperDto<BrokenDto>>(exception, "Value");
         exception.InnerException.ShouldBeSameAs(mapper.Error);
+    }
+
+    // A type map whose plan could not be built stayed sealed, without a plan. The request that had built it got the
+    // error, and got it again when it was repeated. Every other request that reached the same map was given the missing
+    // plan: "Error building the mapping plan." with a NullReferenceException inside and no member, and null from
+    // BuildExecutionPlan. They get the error of the first request now, and the plan is not built again for them.
+    static void ShouldBeTheErrorOfTheBrokenMap(ThrowingMapper thrower, params Action[] requests)
+    {
+        foreach (var request in requests)
+        {
+            var exception = ErrorOf(request);
+            ShouldName<Wrapper<Broken>, WrapperDto<BrokenDto>>(exception, "Value");
+            exception.InnerException.ShouldBeSameAs(thrower.Error);
+        }
+        thrower.Calls.ShouldBe(1);
+    }
+
+    [Fact]
+    public void Every_later_request_for_a_map_whose_plan_could_not_be_built_gets_the_error_of_the_first()
+    {
+        var thrower = new ThrowingMapper();
+        var configuration = Configure(thrower, cfg => cfg.CreateMap(typeof(Wrapper<>), typeof(WrapperDto<>)));
+        var mapper = configuration.CreateMapper();
+
+        ShouldBeTheErrorOfTheBrokenMap(thrower,
+            () => mapper.Map<WrapperDto<BrokenDto>>(new Wrapper<Broken>()),
+            // The same map, asked for with other requested types...
+            () => mapper.Map<Wrapper<Broken>, WrapperDto<BrokenDto>>(new Wrapper<Broken>()),
+            () => mapper.Map(new Wrapper<Broken>(), typeof(Wrapper<Broken>), typeof(WrapperDto<BrokenDto>)),
+            // ...for its plan...
+            () => configuration.BuildExecutionPlan(typeof(Wrapper<Broken>), typeof(WrapperDto<BrokenDto>)),
+            // ...and by the plan of another map, which has a member of these types.
+            () => mapper.Map<WrapperDto<WrapperDto<BrokenDto>>>(new Wrapper<Wrapper<Broken>>()),
+            () => configuration.BuildExecutionPlan(typeof(Wrapper<Wrapper<Broken>>), typeof(WrapperDto<WrapperDto<BrokenDto>>)));
+    }
+
+    [Fact]
+    public void A_map_whose_plan_failed_as_a_member_of_another_map_leaves_both_maps_with_that_error()
+    {
+        var thrower = new ThrowingMapper();
+        var configuration = Configure(thrower, cfg => cfg.CreateMap(typeof(Wrapper<>), typeof(WrapperDto<>)));
+        var mapper = configuration.CreateMapper();
+
+        ShouldBeTheErrorOfTheBrokenMap(thrower,
+            // The plan of the map of the inner types is built on the way, inside the plan of the outer one.
+            () => mapper.Map<WrapperDto<WrapperDto<BrokenDto>>>(new Wrapper<Wrapper<Broken>>()),
+            () => mapper.Map<Wrapper<Wrapper<Broken>>, WrapperDto<WrapperDto<BrokenDto>>>(new Wrapper<Wrapper<Broken>>()),
+            () => configuration.BuildExecutionPlan(typeof(Wrapper<Wrapper<Broken>>), typeof(WrapperDto<WrapperDto<BrokenDto>>)),
+            () => mapper.Map<WrapperDto<BrokenDto>>(new Wrapper<Broken>()),
+            () => mapper.Map<Wrapper<Broken>, WrapperDto<BrokenDto>>(new Wrapper<Broken>()),
+            () => configuration.BuildExecutionPlan(typeof(Wrapper<Broken>), typeof(WrapperDto<BrokenDto>)),
+            // A third map, built later, that uses the first of them.
+            () => mapper.Map<WrapperDto<WrapperDto<WrapperDto<BrokenDto>>>>(new Wrapper<Wrapper<Wrapper<Broken>>>()));
+    }
+
+    [Fact]
+    public void A_map_closed_from_the_same_open_map_for_other_types_is_not_affected_by_the_failure()
+    {
+        var mapper = Configure(new ThrowingMapper(), cfg => cfg.CreateMap(typeof(Wrapper<>), typeof(WrapperDto<>))).CreateMapper();
+        ErrorOf(() => mapper.Map<WrapperDto<WrapperDto<BrokenDto>>>(new Wrapper<Wrapper<Broken>>()));
+
+        mapper.Map<WrapperDto<WrapperDto<int>>>(new Wrapper<Wrapper<int>> { Value = new() { Value = 42 } }).Value.Value.ShouldBe(42);
     }
 
     [Fact]

@@ -112,9 +112,24 @@ public static class ExpressionBuilder
     static readonly BinaryExpression ResetIndex = Assign(Index, Zero);
     static readonly UnaryExpression IncrementIndex = PostIncrementAssign(Index);
     public static Expression ReplaceParameters(this IGlobalConfiguration configuration, LambdaExpression initialLambda, Expression newParameter) =>
-        configuration.ParameterReplaceVisitor().Replace(initialLambda, newParameter);
-    public static Expression ReplaceParameters(this IGlobalConfiguration configuration, LambdaExpression initialLambda, Expression[] newParameters) =>
-        configuration.ParameterReplaceVisitor().Replace(initialLambda, newParameters);
+        configuration.ParameterReplaceVisitor().ReplaceValue(initialLambda.Body, initialLambda.Parameters[0], newParameter);
+    public static Expression ReplaceParameters(this IGlobalConfiguration configuration, LambdaExpression initialLambda, Expression[] newParameters)
+    {
+        var visitor = configuration.ParameterReplaceVisitor();
+        var newLambda = initialLambda.Body;
+        for (var i = 0; i < Math.Min(newParameters.Length, initialLambda.Parameters.Count); i++)
+        {
+            newLambda = visitor.ReplaceValue(newLambda, initialLambda.Parameters[i], newParameters[i]);
+        }
+        return newLambda;
+    }
+    // A lambda of the non-generic API takes object, and a map that inherits from the map of an interface takes the interface,
+    // while the plan has the value type itself. Only then the value is boxed where the lambda needs the reference; every
+    // other parameter is replaced as it always was.
+    private static Expression ReplaceValue(this ParameterReplaceVisitor visitor, Expression target, ParameterExpression parameter, Expression newParameter) =>
+        newParameter.Type != parameter.Type && newParameter.Type.IsValueType && target != parameter ?
+            new ValueParameterReplaceVisitor().Replace(target, parameter, newParameter) :
+            visitor.Replace(target, parameter, newParameter);
     public static Expression ConvertReplaceParameters(this IGlobalConfiguration configuration, LambdaExpression initialLambda, Expression newParameter) =>
         configuration.ConvertParameterReplaceVisitor().Replace(initialLambda, newParameter);
     public static Expression ConvertReplaceParameters(this IGlobalConfiguration configuration, LambdaExpression initialLambda, Expression[] newParameters) =>
@@ -162,6 +177,9 @@ public static class ExpressionBuilder
                 if (typeMap.MapExpression != null)
                 {
                     mapExpression = typeMap.Invoke(source, destination);
+                    // NullCheck gives a chain that ends in a T the type T? when the destination member is a T?, and a map from T
+                    // is invoked with its value. A null on the way has no value: it is checked here, and the map is not invoked.
+                    nullCheck = nullCheck || (source.Type != typeMap.SourceType && typeMap.SourceType.IsValueType && Nullable.GetUnderlyingType(source.Type) == typeMap.SourceType);
                 }
             }
         }
@@ -517,6 +535,22 @@ public class ReplaceVisitor : ReplaceVisitorBase
 public class ParameterReplaceVisitor : ReplaceVisitorBase
 {
     protected override Expression VisitParameter(ParameterExpression node) => _oldNode == node ? _newNode : base.VisitParameter(node);
+}
+// Puts a value type in place of a parameter of another type: object, or an interface the value type implements.
+// Where the lambda passes the parameter on (as an argument, in a comparison, as its result), an expression accepts only
+// a reference there ("Expression of type 'Source' cannot be used for parameter of type 'System.Object'"), and the value
+// is boxed, as C# boxes it in such a call. Where the lambda calls a member on the parameter or tests its type, the value
+// itself is valid and stays, as it always did. A cast of the parameter to the value type is the value.
+sealed class ValueParameterReplaceVisitor : ParameterReplaceVisitor
+{
+    Expression _boxed;
+    protected override Expression VisitParameter(ParameterExpression node) => _oldNode == node ? _boxed ??= Convert(_newNode, node.Type) : base.VisitParameter(node);
+    protected override Expression VisitMember(MemberExpression node) => _oldNode == node.Expression ? node.Update(_newNode) : base.VisitMember(node);
+    protected override Expression VisitMethodCall(MethodCallExpression node) =>
+        _oldNode == node.Object ? node.Update(_newNode, Visit(node.Arguments)) : base.VisitMethodCall(node);
+    protected override Expression VisitTypeBinary(TypeBinaryExpression node) => _oldNode == node.Expression ? node.Update(_newNode) : base.VisitTypeBinary(node);
+    protected override Expression VisitUnary(UnaryExpression node) =>
+        _oldNode == node.Operand && node.NodeType == ExpressionType.Convert && node.Type == _newNode.Type ? _newNode : base.VisitUnary(node);
 }
 public class ConvertParameterReplaceVisitor : ParameterReplaceVisitor
 {

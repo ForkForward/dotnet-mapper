@@ -229,4 +229,117 @@ public class MaxDepthThroughConstructors
         }
         return values;
     }
+
+    public class Branch
+    {
+        public int Value { get; set; }
+        public Branch Risky { get; set; }
+        public Branch Next { get; set; }
+    }
+    public class BranchDto
+    {
+        public int Value { get; set; }
+        public BranchDto Risky { get; set; }
+        public BranchDto Next { get; set; }
+    }
+
+    // A level is counted before its destination is created, and the count was taken back only after its last member
+    // had been mapped. A level that failed in between stayed counted. That did not matter when the error ended the Map
+    // call. It did when a resolver caught the error of a nested context.Mapper.Map and the same call went on: from then
+    // on everything was cut off one level early, for each error that had been caught.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void A_level_that_failed_is_not_counted_when_the_error_is_caught_inside_the_same_Map_call(bool failWhileConstructing)
+    {
+        var mapper = new MapperConfiguration(cfg =>
+        {
+            var map = cfg.CreateMap<Branch, BranchDto>().MaxDepth(3)
+                .ForMember(d => d.Risky, o => o.MapFrom((source, _, _, context) => MapOrNull(context, source.Risky)))
+                // Mapped last, after the error below Risky has been caught.
+                .ForMember(d => d.Next, o => o.SetMappingOrder(1));
+            if (failWhileConstructing)
+            {
+                map.ConstructUsing((source, _) => source.Value < 0 ? throw new InvalidOperationException("negative") : new BranchDto());
+            }
+            else
+            {
+                map.ForMember(d => d.Value, o => o.MapFrom((source, _) => source.Value < 0 ? throw new InvalidOperationException("negative") : source.Value));
+            }
+        }).CreateMapper();
+        Branch next = null;
+        for (var value = 5; value > 0; value--)
+        {
+            next = new Branch { Value = value, Next = next };
+        }
+        var source = new Branch { Risky = new Branch { Value = -1 }, Next = next };
+
+        var destination = mapper.Map<BranchDto>(source);
+
+        destination.Risky.ShouldBeNull();
+        // Before: 0 and 1. The level that failed below Risky was still counted, so the third level was taken for a fourth.
+        Values(destination, d => d.Next, d => d.Value).ShouldBe([0, 1, 2]);
+    }
+
+    static BranchDto MapOrNull(ResolutionContext context, Branch branch)
+    {
+        try
+        {
+            return branch == null ? null : context.Mapper.Map<BranchDto>(branch);
+        }
+        catch (Exception)
+        {
+            return null;
+        }
+    }
+
+    // What takes the count back runs at every level an error passes on its way out. It must not use the stack the way
+    // catching and throwing again at every level did (CVE-2026-32933): these two ended the process then.
+    [Fact]
+    public void A_graph_too_deep_for_the_stack_still_ends_in_an_exception_when_the_map_has_a_MaxDepth()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Node, PropertyDto>().MaxDepth(int.MaxValue)).CreateMapper();
+
+        var exception = OnStack(256 * 1024, () => mapper.Map<PropertyDto>(Chain(100_000)));
+
+        exception.ShouldBeAssignableTo<AutoMapperMappingException>().Message.ShouldContain("nested too deeply", Case.Sensitive);
+        Values(mapper.Map<PropertyDto>(Chain(20)), d => d.Next, d => d.Value).ShouldBe(Enumerable.Range(0, 20));
+    }
+
+    [CompiledPlansFact(CompiledPlansFactAttribute.NeedsMoreStack)]
+    public void An_error_deep_in_a_graph_is_still_reported_when_the_map_has_a_MaxDepth()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Node, PropertyDto>().MaxDepth(1000)
+            .ForMember(d => d.Value, o => o.MapFrom(s => FailWhenNegative(s)))).CreateMapper();
+        var source = Chain(400);
+        var last = source;
+        while (last.Next != null)
+        {
+            last = last.Next;
+        }
+        last.Value = -1;
+
+        var exception = OnStack(1024 * 1024, () => mapper.Map<PropertyDto>(source));
+
+        Innermost(exception.ShouldBeAssignableTo<AutoMapperMappingException>()).Message.ShouldBe("negative");
+    }
+
+    static Exception OnStack(int maxStackSize, Action action)
+    {
+        Exception caught = null;
+        var thread = new Thread(() =>
+        {
+            try
+            {
+                action();
+            }
+            catch (Exception exception)
+            {
+                caught = exception;
+            }
+        }, maxStackSize);
+        thread.Start();
+        thread.Join();
+        return caught;
+    }
 }

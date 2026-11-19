@@ -25,6 +25,7 @@
     <File Path="README.md" />
     <File Path="ROADMAP.md" />
     <File Path="Setup.ps1" />
+    <File Path="Sign.ps1" />
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/Benchmark.Baseline/Benchmark.Baseline.csproj" />

@@ -72,11 +72,48 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     }
     void IncludeMembers()
     {
+        var nestedIncludedMembers = false;
         foreach (var includedMap in _typeMap.IncludedMembersTypeMaps)
         {
             var variable = includedMap.Variable;
             _variables.Add(variable);
             _expressions.Add(Assign(variable, _configuration.ReplaceParameters(includedMap.MemberExpression, _source).NullCheck(null)));
+            nestedIncludedMembers |= includedMap.TypeMap.IncludedMembersTypeMaps.Count > 0;
+        }
+        if (nestedIncludedMembers && UsesInheritedIncludedMembers())
+        {
+            foreach (var includedMap in _typeMap.IncludedMembersTypeMaps)
+            {
+                IncludeInheritedMembers(includedMap);
+            }
+        }
+    }
+    // A member that an included map got from an included member of its own comes with the variable of that member. ProfileMap.ApplyMemberMaps
+    // gives this map those variables, except for the included members the included map inherits (IncludeBase): it has them only once it is sealed.
+    // A map that has such a member gets the variables here; the plan of any other map stays as it was.
+    bool UsesInheritedIncludedMembers()
+    {
+        foreach (var memberMap in _typeMap.MemberMaps)
+        {
+            if (memberMap.IncludedMember is { } includedMember && !_variables.Contains(includedMember.Variable))
+            {
+                return true;
+            }
+        }
+        return false;
+    }
+    void IncludeInheritedMembers(IncludedMember includedMap)
+    {
+        foreach (var inheritedMember in includedMap.TypeMap.IncludedMembersTypeMaps)
+        {
+            if (_variables.Contains(inheritedMember.Variable))
+            {
+                continue;
+            }
+            var chainedMember = includedMap.Chain(inheritedMember);
+            _variables.Add(chainedMember.Variable);
+            _expressions.Add(Assign(chainedMember.Variable, _configuration.ReplaceParameters(chainedMember.MemberExpression, _source).NullCheck(null)));
+            IncludeInheritedMembers(chainedMember);
         }
     }
     private static void CheckForCycles(IGlobalConfiguration configuration, TypeMap typeMap, HashSet<TypeMap> typeMapsPath)
@@ -158,7 +195,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     private Expression CreateDestinationFunc()
     {
         var newDestFunc = CreateNewDestinationFunc();
-        var getDest = DestinationType.IsValueType ? newDestFunc : Coalesce(_initialDestination, ToType(newDestFunc, DestinationType));
+        var getDest = DestinationType.IsValueType ? ToType(newDestFunc, DestinationType) : Coalesce(_initialDestination, ToType(newDestFunc, DestinationType));
         var destinationFunc = Assign(_destination, getDest);
         return _typeMap.PreserveReferences ?
             Block(destinationFunc, Call(ContextParameter, CacheDestinationMethod, _source, Constant(DestinationType), _destination), _destination) :
@@ -168,25 +205,26 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     private Expression CreateAssignmentFunc(Expression createDestination)
     {
         List<Expression> actions = [createDestination];
-        Expression typeMapExpression = null;
-        var hasMaxDepth = _typeMap.MaxDepth > 0;
-        if (hasMaxDepth)
-        {
-            typeMapExpression = Constant(_typeMap);
-            // Counted before the destination is created, not after: creating it can already map the next level,
-            // through a constructor parameter or through ConstructUsing with the context.
-            actions.Insert(0, Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
-        }
         AddBeforeMap(actions);
         AddPropertyMaps(actions);
         AddPathMaps(actions);
         AddAfterMap(actions);
-        if (hasMaxDepth)
-        {
-            actions.Add(Call(ContextParameter, DecTypeDepthInfo, typeMapExpression));
-        }
         actions.Add(_destination);
-        return Block(actions);
+        if (_typeMap.MaxDepth == 0)
+        {
+            return Block(actions);
+        }
+        var typeMapExpression = Constant(_typeMap);
+        // Counted before the destination is created, not after: creating it can already map the next level,
+        // through a constructor parameter or through ConstructUsing with the context.
+        // The count is taken back in a finally block, so also when the level fails: a resolver, a converter or a
+        // destination factory can catch the error of a nested context.Mapper.Map and map on with the same context,
+        // and a level that failed must not stay counted there. On the way out of a deep graph the finally block of
+        // each level runs and returns before the next one starts: unlike a catch that throws again, it leaves
+        // nothing on the stack for the levels above it (see ExpressionBuilder.MaxExceptionWrappers). And unlike
+        // an exception filter, it also runs where plans are interpreted.
+        return Block(Call(ContextParameter, IncTypeDepthInfo, typeMapExpression),
+            TryFinally(Block(actions), Call(ContextParameter, DecTypeDepthInfo, typeMapExpression)));
     }
     private void AddAfterMap(List<Expression> actions)
     {
@@ -212,6 +250,13 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             if (pathMap.Ignored)
             {
                 continue;
+            }
+            if (pathMap.Resolver == null)
+            {
+                // ForPath with a condition and no MapFrom. A path has no source member of the same name to fall back on, as a member has.
+                throw new AutoMapperConfigurationException(
+                    $"The path {pathMap.DestinationName} of the map from {_typeMap.SourceType} to {_typeMap.DestinationType} has nothing to map from: ForPath was given no MapFrom for it. " +
+                    $"Add one, as in ForPath(destination => destination.{pathMap.DestinationName}, o => o.MapFrom(source => ...)), or ignore the path with o.Ignore().");
             }
             _memberMap = pathMap;
             actions.Add(TryPathMap(pathMap));
@@ -539,7 +584,18 @@ public class ValueConverter : ValueResolverConfig, IValueResolver
             _ when memberMap.SourceMembers.Length > 0 => memberMap.ChainSourceMembers(configuration, source, destinationMember),
             _ => Throw(Constant(BuildExceptionMessage()), sourceMemberType)
         };
+        if (sourceMember.Type != sourceMemberType && sourceMemberType.IsValueType && !sourceMemberType.IsNullableType() && IsNullCheckedToNullable())
+        {
+            var checkedMember = Variable(sourceMember.Type, "sourceMember");
+            var convert = Call(ToType(_instance, InterfaceType), InterfaceType.GetMethod("Convert"), ToType(ExpressionBuilder.Property(checkedMember, "Value"), sourceMemberType), ContextParameter);
+            return Block([checkedMember], Assign(checkedMember, sourceMember), checkedMember.IfNullElse(configuration.Default(convert.Type), convert));
+        }
         return Call(ToType(_instance, InterfaceType), InterfaceType.GetMethod("Convert"), ToType(sourceMember, sourceMemberType), ContextParameter);
+        // The source members matched by name are null checked for the destination member: when they end in a T and the member
+        // is a T?, NullCheck gives them the type T?, so that a null on the way is a null. A converter that takes a value type
+        // cannot be given that null and is not called for it: the result is the default of what the converter returns.
+        bool IsNullCheckedToNullable() => SourceMemberLambda == null && SourceMemberName == null && memberMap.SourceMembers.Length > 0 &&
+            Nullable.GetUnderlyingType(sourceMember.Type) == memberMap.SourceMembers[^1].GetMemberType();
         AutoMapperConfigurationException BuildExceptionMessage()
             => new($"Cannot find a source member to pass to the value converter of type {ConcreteType}. Configure a source member to map from.");
     }
@@ -605,7 +661,12 @@ public class ClassTypeConverter(Type converterType, Type converterInterface) : T
     public Type ConverterType { get; private set; } = converterType;
     public Type ConverterInterface { get; } = converterInterface;
     public override Expression GetExpression(IGlobalConfiguration configuration, ParameterExpression[] parameters) =>
-        Call(ToType(ServiceLocator(ConverterType), ConverterInterface), "Convert", parameters);
+        Call(ToType(ServiceLocator(ConverterType), ConverterInterface), "Convert", Arguments(parameters));
+    // ConvertUsing<TTypeConverter>() of the non-generic API calls the converter through ITypeConverter<object, object>:
+    // a source or a destination that is a value type is boxed for it. Every other converter takes the types of the map.
+    Expression[] Arguments(ParameterExpression[] parameters) =>
+        ConverterInterface == typeof(ITypeConverter<object, object>) && (parameters[0].Type.IsValueType || parameters[1].Type.IsValueType) ?
+            [parameters[0].ToObject(), parameters[1].ToObject(), parameters[2]] : parameters;
     public override void CloseGenerics(TypeMapConfiguration openMapConfig, TypePair closedTypes)
     {
         var typeParams = (openMapConfig.SourceType.IsGenericTypeDefinition ? closedTypes.SourceType.GenericTypeArguments : [])

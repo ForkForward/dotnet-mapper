@@ -139,6 +139,8 @@ public sealed class ProfileMap
         var sourceMembers = configuration.SourceMembers;
         TypeMap typeMap = new(config.SourceType, config.DestinationType, this, config, sourceMembers);
         config.Configure(typeMap, sourceMembers);
+        // the same profile can be used to build another configuration
+        config.Configured = false;
         configuration.RegisterTypeMap(typeMap);
     }
     public void Configure(IGlobalConfiguration configuration)
@@ -166,8 +168,34 @@ public sealed class ProfileMap
             }
         }
     }
+    // A closed generic map that an include asks for is created and sealed on the spot, and sealing it seals the maps it inherits from
+    // and the maps of its included members. One that is registered after the map with the include is configured here first, before its turn.
+    internal void ConfigureBeforeItsTurn(TypeMap typeMap, IGlobalConfiguration configuration)
+    {
+        foreach (var typeMapConfiguration in _typeMapConfigs)
+        {
+            if (typeMapConfiguration.DestinationTypeOverride != null)
+            {
+                continue;
+            }
+            if (typeMapConfiguration.Types == typeMap.Types)
+            {
+                Configure(typeMapConfiguration, configuration);
+            }
+            var reverseMap = typeMapConfiguration.ReverseTypeMap;
+            if (reverseMap != null && reverseMap.DestinationTypeOverride == null && reverseMap.Types == typeMap.Types)
+            {
+                Configure(reverseMap, configuration);
+            }
+        }
+    }
     private void Configure(TypeMapConfiguration typeMapConfiguration, IGlobalConfiguration configuration)
     {
+        if (typeMapConfiguration.Configured)
+        {
+            return;
+        }
+        typeMapConfiguration.Configured = true;
         var typeMap = typeMapConfiguration.TypeMap;
         // an open generic configuration that was already used to create a closed map points to that map
         if (typeMap.Types != typeMapConfiguration.Types)
@@ -270,7 +298,16 @@ public sealed class ProfileMap
         }
     }
     public bool MapDestinationPropertyToSource(TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string destMemberName, List<MemberInfo> members, bool reverseNamingConventions) =>
-        MemberConfiguration.IsMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions);
+        MapDestinationPropertyToSource(sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions, out _);
+    // throughChain: the members were found only by following the words of the name through the source types, which
+    // finds chains that were not found before that existed (see ConventionsNameSplitMember.IsChainMatch).
+    internal bool MapDestinationPropertyToSource(TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string destMemberName, List<MemberInfo> members,
+        bool reverseNamingConventions, out bool throughChain)
+    {
+        throughChain = false;
+        return MemberConfiguration.IsMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions) ||
+            (throughChain = MemberConfiguration.IsChainMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions));
+    }
     public bool AllowsNullDestinationValuesFor(MemberMap memberMap = null) => memberMap?.AllowNull ?? AllowNullDestinationValues;
     public bool AllowsNullCollectionsFor(MemberMap memberMap = null) => memberMap?.AllowNull ?? AllowNullCollections;
 }

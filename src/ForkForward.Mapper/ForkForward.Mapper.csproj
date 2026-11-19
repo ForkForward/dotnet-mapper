@@ -3,7 +3,8 @@
   <PropertyGroup>
     <Summary>Community fork of AutoMapper, a convention-based object-object mapper.</Summary>
     <Description>ForkForward.Mapper is a community fork of AutoMapper, the convention-based object-object mapper created by Jimmy Bogard. It continues the last MIT-licensed code of AutoMapper (14.0.0) with its own assembly name and namespace, ForkForward.Mapper: moving from AutoMapper 14 is a package reference and a using directive. Independent project: not affiliated with or endorsed by the original authors.</Description>
-    <TargetFramework>net8.0</TargetFramework>
+    <!-- The .NET versions that are in support: 10 (long term) and 11. Decided by the maintainer on 2026-11-19; see ROADMAP.md. -->
+    <TargetFrameworks>net10.0;net11.0</TargetFrameworks>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- Own assembly name, namespace and signing key since 14.1.0; see ROADMAP.md, phase 2. -->
     <AssemblyName>ForkForward.Mapper</AssemblyName>
@@ -39,9 +40,10 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Extensions.Options" Version="8.0.2" />
+    <!-- For net10.0 the lowest version of .NET 10: an application decides which patch it runs with. For net11.0 there is no
+         package: the shared framework of .NET 11 has Microsoft.Extensions.Options. -->
+    <PackageReference Include="Microsoft.Extensions.Options" Version="10.0.0" Condition="'$(TargetFramework)' == 'net10.0'" />
     <PackageReference Include="MinVer" Version="6.1.0" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
