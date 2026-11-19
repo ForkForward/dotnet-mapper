@@ -1,13 +1,14 @@
 namespace ForkForward.Mapper.UnitTests;
 
 // A member that is not inlined into the plan of its map (MapAtRuntime, or inlining used up) is mapped by a plan of
-// its own. That plan is built when it is first needed and cached by the source and destination types alone, so
-// members of different maps that have the same two types share it. For a collection member of a map with MaxDepth
-// the plan asks whether that map is over its depth, and depth is counted in a context of its own, which only a map
-// with MaxDepth or PreserveReferences creates. A map with neither runs the shared plan with the mapper's default
-// context, and the question used to end in "Context.Items are only available when using a Map overload that takes
-// Action<IMappingOperationOptions>!", from a map that never touches Context.Items, and only when the map with
-// MaxDepth had been used first. With the default context no map is counting depth, and the answer is now "no".
+// its own. For a collection member of a map with MaxDepth that plan asks whether the map is over its depth, and depth
+// is counted in a context of its own, which only a map with MaxDepth or PreserveReferences creates. The plan used to
+// be cached by the source and destination types alone, so a member of a map with neither, with the same two types,
+// ran it with the mapper's default context, and the question ended in "Context.Items are only available when using a
+// Map overload that takes Action<IMappingOperationOptions>!", from a map that never touches Context.Items, and only
+// when the map with MaxDepth had been used first. Plans are cached per member now (see MapRequest and
+// PlansOfMembersMappedThroughTheContext); the default context still answers "no", as a safeguard. These tests pin
+// that both maps map, in either order.
 public class MaxDepthWithMembersMappedAtRuntime
 {
     public enum Limit { None, MaxDepth, PreserveReferences }
@@ -56,7 +57,7 @@ public class MaxDepthWithMembersMappedAtRuntime
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public void Two_maps_that_share_the_plan_of_a_member_both_map_whichever_is_used_first(Limit limit, NotInlinedBecause notInlinedBecause, bool recursiveFirst)
+    public void Two_maps_with_a_member_of_the_same_types_both_map_whichever_is_used_first(Limit limit, NotInlinedBecause notInlinedBecause, bool recursiveFirst)
     {
         var mapper = Configuration(limit, notInlinedBecause).CreateMapper();
 
@@ -79,7 +80,7 @@ public class MaxDepthWithMembersMappedAtRuntime
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void Mappers_created_from_one_configuration_share_the_plan_too(bool recursiveFirst)
+    public void Mappers_created_from_one_configuration_map_both_too(bool recursiveFirst)
     {
         var configuration = Configuration(Limit.MaxDepth, NotInlinedBecause.MapAtRuntime);
         var first = configuration.CreateMapper();
@@ -101,7 +102,7 @@ public class MaxDepthWithMembersMappedAtRuntime
     }
 
     [Fact]
-    public void A_map_with_options_runs_the_shared_plan_with_its_own_context()
+    public void A_map_with_options_maps_the_member_with_its_own_context()
     {
         var mapper = Configuration(Limit.MaxDepth, NotInlinedBecause.MapAtRuntime).CreateMapper();
         MapRecursive(mapper);

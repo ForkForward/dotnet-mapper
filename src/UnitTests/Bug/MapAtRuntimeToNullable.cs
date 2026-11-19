@@ -362,13 +362,9 @@ public class MapAtRuntimeToNullable
             var destination = mapper.Map<WithConstructor>(new Source { Inner = new() { Number = 5, Text = "7" } });
             destination.Number.ShouldBe(105);
             destination.Parsed.ShouldBe(107);
-            if (maxExecutionPlanDepth > 0)
-            {
-                // Inlined, a null on the way to a constructor parameter whose types have a map of their own is not
-                // checked before that map is invoked: "Nullable object must have a value". That is another defect,
-                // older than this fix and not changed by it, so there is no inlined value to compare with.
-                continue;
-            }
+            // A null on the way gives null, inlined or not. Inlined, the map of the parameter's types was invoked
+            // without a null check, and the result was "Nullable object must have a value"; that is fixed too
+            // (see NullOnTheWayToNullableConverter).
             destination = mapper.Map<WithConstructor>(new Source());
             destination.Number.ShouldBeNull();
             destination.Parsed.ShouldBeNull();
