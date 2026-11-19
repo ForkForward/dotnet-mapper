@@ -256,4 +256,6 @@ How the depth is counted:
 
 `MaxDepth` has no effect on a map with `ConvertUsing`, where the converter does the mapping. The map created by `ReverseMap` does not get it: call `MaxDepth` again after `ReverseMap` if the reverse map needs one. In `ProjectTo` it is not a depth: it limits how many times the map is used in the query, and a derived map does not inherit it there.
 
+A use past that limit gives `null` or, with `AllowNullDestinationValues` off, an empty destination, whether the next level is reached through a property or through a constructor parameter; see [Recursive models](Queryable-Extensions.md#recursive-models).
+
 `MaxDepth` decides what the result contains. It is not what keeps a deep graph from ending the process: that is the check described above, which is always on and needs no configuration. A `MaxDepth` larger than the stack allows ends in the same exception as no `MaxDepth` at all.

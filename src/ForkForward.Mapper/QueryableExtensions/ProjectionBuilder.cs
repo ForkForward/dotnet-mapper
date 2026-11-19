@@ -85,12 +85,19 @@ public sealed class ProjectionBuilder : IProjectionBuilder
     Expression CreateProjection(in ProjectionRequest request, LetPropertyMaps letPropertyMaps, TypeMap typeMap, TypeMap[] polymorphicMaps, Expression source)
     {
         var destinationType = typeMap.DestinationType;
+        var overMaxDepth = false;
         var projection = (polymorphicMaps.Length > 0 && destinationType.IsAbstract) ? Default(destinationType) : CreateProjectionCore(request, letPropertyMaps, typeMap, source);
+        if(overMaxDepth)
+        {
+            // At its limit the map gives null, or an empty destination, whatever the type of the row: the derived maps are not used there either.
+            return projection;
+        }
         foreach(var derivedMap in polymorphicMaps)
         {
             var sourceType = derivedMap.SourceType;
             var derivedRequest = request.InnerRequest(sourceType, derivedMap.DestinationType);
-            var derivedProjection = CreateProjectionCore(derivedRequest, letPropertyMaps, derivedMap, TypeAs(source, sourceType));
+            // A derived map that is at its own limit gives null for the rows of its type.
+            var derivedProjection = CreateProjectionCore(derivedRequest, letPropertyMaps, derivedMap, TypeAs(source, sourceType)) ?? Default(derivedMap.DestinationType);
             projection = Condition(TypeIs(source, sourceType), derivedProjection, projection, projection.Type);
         }
         return projection;
@@ -105,7 +112,8 @@ public sealed class ProjectionBuilder : IProjectionBuilder
             int depth;
             try
             {
-                if(OverMaxDepth())
+                overMaxDepth = OverMaxDepth();
+                if(overMaxDepth)
                 {
                     if(typeMap.Profile.AllowNullDestinationValues)
                     {
@@ -251,6 +259,8 @@ public sealed class ProjectionBuilder : IProjectionBuilder
             NewExpression CreateDestination() => typeMap switch
             {
                 { CustomCtorExpression: LambdaExpression ctorExpression } => (NewExpression)ctorExpression.ReplaceParameters(instanceParameter),
+                // The empty destination a map gives at its limit when it may not give null: no member is projected, so no parameter either.
+                { ConstructorMap: { CanResolve: true } constructorMap } when overMaxDepth => New(constructorMap.Ctor, constructorMap.CtorParams.Select(map => map.DefaultValue(null))),
                 { ConstructorMap: { CanResolve: true } constructorMap } =>
                     New(constructorMap.Ctor, constructorMap.CtorParams.Select(map => TryProjectMember(map, map.DefaultValue(null)) ?? Default(map.DestinationType))),
                 _ => New(typeMap.DestinationType)
@@ -389,6 +399,8 @@ public class LetPropertyMaps
     public MemberPath GetCurrentPath() => _parentPath.Concat(
         _currentPath.Reverse().Select(p => (p.MemberMap as PropertyMap)?.DestinationMember).Where(p => p != null));
     public void Pop() => _currentPath.Pop();
+    // The member that is being projected; null outside of one.
+    internal MemberMap CurrentMember => _currentPath.TryPeek(out var memberProjection) ? memberProjection.MemberMap : null;
     public virtual int Count => 0;
     public IGlobalConfiguration Configuration { get; }
     public virtual LetPropertyMaps New() => new(Configuration, GetCurrentPath(), BuiltProjections);
