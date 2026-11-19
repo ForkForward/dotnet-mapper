@@ -157,6 +157,22 @@ public interface IMappingExpressionBase<TSource, TDestination, out TMappingExpre
     /// <returns>Itself</returns>
     TMappingExpression ConstructUsing(Func<TSource, ResolutionContext, TDestination> ctor);
     /// <summary>
+    /// Create the destination object using a <see cref="IDestinationFactory{TSource,TDestination}"/> instantiated during mapping.
+    /// Replaces constructor mapping for this map; the members are mapped onto the object the factory returns
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <typeparam name="TDestinationFactory">Destination factory type</typeparam>
+    /// <returns>Itself</returns>
+    TMappingExpression ConstructUsing<TDestinationFactory>() where TDestinationFactory : IDestinationFactory<TSource, TDestination>;
+    /// <summary>
+    /// Create the destination object using a <see cref="IDestinationFactory{TSource,TDestination}"/> instantiated during mapping.
+    /// Use this method if you need to specify the factory type at runtime, or an open generic factory type for an open generic map
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <param name="destinationFactoryType">Destination factory type</param>
+    /// <returns>Itself</returns>
+    TMappingExpression ConstructUsing(Type destinationFactoryType);
+    /// <summary>
     /// Override the destination type mapping for looking up configuration and instantiation
     /// </summary>
     /// <param name="typeOverride"></param>
@@ -211,6 +227,22 @@ public interface IMappingAction<in TSource, in TDestination>
     /// <param name="destination">Destination object</param>
     /// <param name="context">Resolution context</param>
     void Process(TSource source, TDestination destination, ResolutionContext context);
+}
+/// <summary>
+/// Creates the destination object of a map, instead of a constructor.
+/// It is instantiated during mapping through the service constructor, so it can take dependencies
+/// </summary>
+/// <typeparam name="TSource">Source type</typeparam>
+/// <typeparam name="TDestination">Destination type</typeparam>
+public interface IDestinationFactory<in TSource, out TDestination>
+{
+    /// <summary>
+    /// Creates the destination object. Its members are mapped afterwards
+    /// </summary>
+    /// <param name="source">Source object</param>
+    /// <param name="context">Resolution context</param>
+    /// <returns>Destination object</returns>
+    TDestination Create(TSource source, ResolutionContext context);
 }
 /// <summary>
 /// Converts source type to destination type instead of normal member mapping

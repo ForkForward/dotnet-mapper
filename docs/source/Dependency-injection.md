@@ -26,6 +26,9 @@ public class EmployeesController {
 	// use _mapper.Map or _mapper.ProjectTo
 }
 ```
+
+`AddAutoMapper` also registers the [destination factories](Construction.md#creating-the-destination-with-a-factory-class) it finds in those assemblies, as transient services. A map configured with `ConstructUsing<OrderDtoFactory>()` gets its factory from the container each time it creates a destination object, so the factory can take dependencies in its constructor, and a mapper resolved from a scope gives it that scope's services. `ProjectTo` does not use destination factories.
+
 ### AutoFac
 
 There is a third-party [NuGet package](https://www.nuget.org/packages/AutoMapper.Contrib.Autofac.DependencyInjection) you might want to try.

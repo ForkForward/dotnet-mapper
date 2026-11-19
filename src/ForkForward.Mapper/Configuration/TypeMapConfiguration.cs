@@ -324,6 +324,60 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
         Expression<Func<TSource, ResolutionContext, TDestination>> expr = (src, ctxt) => ctor(src, ctxt);
         return ConstructUsingCore(expr);
     }
+    public TMappingExpression ConstructUsing<TDestinationFactory>() where TDestinationFactory : IDestinationFactory<TSource, TDestination> =>
+        ConstructUsingFactory(typeof(TDestinationFactory), typeof(IDestinationFactory<TSource, TDestination>));
+    public TMappingExpression ConstructUsing(Type destinationFactoryType) =>
+        ConstructUsingFactory(destinationFactoryType ?? throw new ArgumentNullException(nameof(destinationFactoryType)), null);
+    private TMappingExpression ConstructUsingFactory(Type factoryType, Type factoryInterface)
+    {
+        TypeMapActions.Add(tm => tm.CustomCtorFunction = DestinationFactoryFunction(tm.Types, factoryType, factoryInterface));
+        return this as TMappingExpression;
+    }
+    // (source, context) => ((IDestinationFactory<,>)context.CreateInstance(factoryType)).Create(source, context)
+    // The same shape as the function overload of ConstructUsing, so everything that works with that one works with a factory.
+    private LambdaExpression DestinationFactoryFunction(TypePair types, Type factoryType, Type factoryInterface)
+    {
+        if (types.ContainsGenericParameters)
+        {
+            // The map of the open types is never executed. It only has to say that no constructor is needed; each closed map gets its own function,
+            // and only there can the types be checked. A type that is no factory at all is refused here already.
+            return factoryInterface == null && factoryType.GetGenericInterface(typeof(IDestinationFactory<,>)) == null ?
+                throw CannotCreateDestination(factoryType, types) : Lambda(ServiceLocator(factoryType));
+        }
+        if (factoryType.IsGenericTypeDefinition)
+        {
+            factoryType = CloseDestinationFactory(factoryType, types);
+        }
+        factoryInterface ??= DestinationFactoryInterface(factoryType, types) ?? throw CannotCreateDestination(factoryType, types);
+        var source = Parameter(types.SourceType, "source");
+        var destination = Call(ToType(ServiceLocator(factoryType), factoryInterface), "Create", [ToType(source, factoryInterface.GenericTypeArguments[0]), ContextParameter]);
+        return Lambda(ToType(destination, types.DestinationType), source, ContextParameter);
+    }
+    private static AutoMapperConfigurationException CannotCreateDestination(Type factoryType, TypePair types) => new(
+        $"{factoryType} cannot create the destination of the map from {types.SourceType} to {types.DestinationType}. It has to implement IDestinationFactory<TSource, TDestination> " +
+        $"with a TSource that {types.SourceType} can be assigned to and a TDestination that can be assigned to {types.DestinationType}.");
+    // The type arguments come from the closed source and destination types, in that order, as for an open type converter (ClassTypeConverter.CloseGenerics).
+    private Type CloseDestinationFactory(Type factoryType, TypePair closedTypes)
+    {
+        var typeArguments = (SourceType.IsGenericTypeDefinition ? closedTypes.SourceType.GenericTypeArguments : [])
+            .Concat(DestinationType.IsGenericTypeDefinition ? closedTypes.DestinationType.GenericTypeArguments : []);
+        try
+        {
+            return factoryType.MakeGenericType([..typeArguments.Take(factoryType.GenericParametersCount())]);
+        }
+        catch (ArgumentException ex)
+        {
+            throw new AutoMapperConfigurationException(
+                $"Cannot close the open generic destination factory {factoryType} for the map from {closedTypes.SourceType} to {closedTypes.DestinationType}.", ex);
+        }
+    }
+    // The interface for exactly the types of the map when the factory implements it, otherwise the first one it can be called through.
+    private static Type DestinationFactoryInterface(Type factoryType, TypePair types)
+    {
+        var interfaces = factoryType.GetInterfaces().Append(factoryType).Where(i => i.IsGenericType(typeof(IDestinationFactory<,>))).ToArray();
+        return Array.Find(interfaces, i => new TypePair(i.GenericTypeArguments[0], i.GenericTypeArguments[1]) == types) ??
+            Array.Find(interfaces, i => i.GenericTypeArguments[0].IsAssignableFrom(types.SourceType) && types.DestinationType.IsAssignableFrom(i.GenericTypeArguments[1]));
+    }
     public void ConvertUsing(Type typeConverterType)
     {
         HasTypeConverter = true;
