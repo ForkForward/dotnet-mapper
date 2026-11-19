@@ -804,6 +804,75 @@ public class When_a_map_inherits_from_an_open_generic_map_with_a_condition_class
     }
 }
 
+// An open generic class is closed with the type arguments of the map. When the map has none, too few, or one that the
+// class does not accept, what was thrown was the ArgumentException of Type.MakeGenericType, which names neither the
+// class nor the map.
+public class When_an_open_generic_condition_class_cannot_be_closed
+{
+    class Source
+    {
+        public int Value { get; set; }
+    }
+    class Destination
+    {
+        public int Value { get; set; }
+    }
+    class Source<T>
+    {
+        public T Value { get; set; }
+    }
+    class Destination<T>
+    {
+        public T Value { get; set; }
+    }
+    class NotDefault<T> : IMemberCondition<object, object, T>
+    {
+        public bool ShouldMap(object source, object destination, T sourceMember, T destinationMember, ResolutionContext context) =>
+            !EqualityComparer<T>.Default.Equals(sourceMember, default);
+    }
+    class Enabled<T> : IMemberPreCondition<object, object>
+    {
+        public bool ShouldMap(object source, object destination, ResolutionContext context) => true;
+    }
+    class ClassesOnly<T> : IMemberCondition<object, object, T> where T : class
+    {
+        public bool ShouldMap(object source, object destination, T sourceMember, T destinationMember, ResolutionContext context) => sourceMember != null;
+    }
+    static AutoMapperConfigurationException ErrorOf(Action<IMemberConfigurationExpression> memberOptions, Action<IMappingExpression, Action<IMemberConfigurationExpression>> configure = null)
+    {
+        configure ??= (map, options) => map.ForMember(nameof(Destination.Value), options);
+        // Before: an ArgumentException, "The number of generic arguments provided doesn't equal the arity of the generic type definition."
+        var exception = new Action(() => new MapperConfiguration(cfg => configure(cfg.CreateMap(typeof(Source), typeof(Destination)), memberOptions))).ShouldThrow<AutoMapperConfigurationException>();
+        exception.InnerException.ShouldBeOfType<ArgumentException>();
+        return exception;
+    }
+    [Fact]
+    public void A_condition_on_a_map_without_type_arguments_names_the_class_and_the_map() =>
+        ErrorOf(o => o.Condition(typeof(NotDefault<>))).Message.ShouldBe(
+            $"Cannot close the open generic condition class {typeof(NotDefault<>)} for the map from {typeof(Source)} to {typeof(Destination)}. " +
+            "It is closed with the type arguments of the source type, followed by those of the destination type.");
+    [Fact]
+    public void A_precondition_on_a_map_without_type_arguments_names_the_class_and_the_map() =>
+        ErrorOf(o => o.PreCondition(typeof(Enabled<>))).Message.ShouldBe(
+            $"Cannot close the open generic precondition class {typeof(Enabled<>)} for the map from {typeof(Source)} to {typeof(Destination)}. " +
+            "It is closed with the type arguments of the source type, followed by those of the destination type.");
+    [Fact]
+    public void A_condition_for_all_members_does_too() =>
+        ErrorOf(o => o.Condition(typeof(NotDefault<>)), (map, options) => map.ForAllMembers(options)).Message.ShouldStartWith(
+            $"Cannot close the open generic condition class {typeof(NotDefault<>)} for the map from {typeof(Source)} to {typeof(Destination)}.");
+    [Fact]
+    public void A_closed_map_with_a_type_argument_that_the_class_does_not_accept_fails_the_same_way_when_it_is_first_used()
+    {
+        var mapper = new MapperConfiguration(cfg =>
+            cfg.CreateMap(typeof(Source<>), typeof(Destination<>)).ForMember("Value", o => o.Condition(typeof(ClassesOnly<>)))).CreateMapper();
+        mapper.Map(new Source<string> { Value = "new" }, new Destination<string> { Value = "old" }).Value.ShouldBe("new");
+        // Before: "Error building the mapping plan." around the ArgumentException, with the types and without the class.
+        var exception = new Action(() => mapper.Map<Destination<int>>(new Source<int>())).ShouldThrow<AutoMapperConfigurationException>();
+        exception.Message.ShouldStartWith($"Cannot close the open generic condition class {typeof(ClassesOnly<>)} for the map from {typeof(Source<int>)} to {typeof(Destination<int>)}.");
+        exception.InnerException.ShouldBeOfType<ArgumentException>();
+    }
+}
+
 public class When_a_map_with_a_condition_class_is_reversed : AutoMapperSpecBase
 {
     class Source

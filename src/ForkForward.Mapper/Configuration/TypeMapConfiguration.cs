@@ -351,7 +351,15 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
         }
         if (factoryType.IsGenericTypeDefinition)
         {
-            factoryType = CloseDestinationFactory(factoryType, types);
+            if (!Types.ContainsGenericParameters)
+            {
+                // This expression is not the one of an open map: it has the types of the map itself, as the expression has that ForAllMaps
+                // hands out for every map. For a map closed from an open map only the open map says which side the type arguments come from,
+                // so the factory is closed where an open type converter is, in TypeMap.CloseGenerics. Until then the map has this in the
+                // place of its construction function; a map that still has it when it is sealed was not closed from an open map.
+                return Lambda(Constant(new OpenDestinationFactory(openTypes => DestinationFactoryFunction(types, CloseDestinationFactory(factoryType, openTypes, types), factoryInterface))));
+            }
+            factoryType = CloseDestinationFactory(factoryType, Types, types);
         }
         factoryInterface ??= DestinationFactoryInterface(factoryType, types) ?? throw CannotCreateDestination(factoryType, types);
         var source = Parameter(types.SourceType, "source");
@@ -362,10 +370,10 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
         $"{factoryType} cannot create the destination of the map from {types.SourceType} to {types.DestinationType}. It has to implement IDestinationFactory<TSource, TDestination> " +
         $"with a TSource that {types.SourceType} can be assigned to and a TDestination that can be assigned to {types.DestinationType}.");
     // The type arguments come from the closed source and destination types, in that order, as for an open type converter (ClassTypeConverter.CloseGenerics).
-    private Type CloseDestinationFactory(Type factoryType, TypePair closedTypes)
+    private static Type CloseDestinationFactory(Type factoryType, TypePair openTypes, TypePair closedTypes)
     {
-        var typeArguments = (SourceType.IsGenericTypeDefinition ? closedTypes.SourceType.GenericTypeArguments : [])
-            .Concat(DestinationType.IsGenericTypeDefinition ? closedTypes.DestinationType.GenericTypeArguments : []);
+        var typeArguments = (openTypes.SourceType.IsGenericTypeDefinition ? closedTypes.SourceType.GenericTypeArguments : [])
+            .Concat(openTypes.DestinationType.IsGenericTypeDefinition ? closedTypes.DestinationType.GenericTypeArguments : []);
         try
         {
             return factoryType.MakeGenericType([..typeArguments.Take(factoryType.GenericParametersCount())]);
@@ -376,12 +384,30 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
                 $"Cannot close the open generic destination factory {factoryType} for the map from {closedTypes.SourceType} to {closedTypes.DestinationType}.", ex);
         }
     }
-    // The interface for exactly the types of the map when the factory implements it, otherwise the first one it can be called through.
+    // The interface for exactly the types of the map when the factory implements it, otherwise the one it can be called through.
+    // A factory that can be called through several is refused, like a condition class (ClassCondition.GetInterface): nothing says
+    // which one was meant, and the order in which reflection lists the interfaces of a type is not specified.
     private static Type DestinationFactoryInterface(Type factoryType, TypePair types)
     {
         var interfaces = factoryType.GetInterfaces().Append(factoryType).Where(i => i.IsGenericType(typeof(IDestinationFactory<,>))).ToArray();
-        return Array.Find(interfaces, i => new TypePair(i.GenericTypeArguments[0], i.GenericTypeArguments[1]) == types) ??
-            Array.Find(interfaces, i => i.GenericTypeArguments[0].IsAssignableFrom(types.SourceType) && types.DestinationType.IsAssignableFrom(i.GenericTypeArguments[1]));
+        var exactInterface = Array.Find(interfaces, i => new TypePair(i.GenericTypeArguments[0], i.GenericTypeArguments[1]) == types);
+        if (exactInterface != null)
+        {
+            return exactInterface;
+        }
+        var fitting = Array.FindAll(interfaces, i => i.GenericTypeArguments[0].IsAssignableFrom(types.SourceType) && types.DestinationType.IsAssignableFrom(i.GenericTypeArguments[1]));
+        if (fitting.Length == 0)
+        {
+            // What the generic overload accepts on this mapping expression. That is more only where TSource and TDestination are not the
+            // types of the map: on a map created from types, and in ForAllMaps, they are object, and the generic overload takes a factory
+            // for object whatever it returns. So does this one, when what it returns is a base type of the destination type and can be cast to it.
+            fitting = Array.FindAll(interfaces, i => typeof(IDestinationFactory<TSource, TDestination>).IsAssignableFrom(i) && i.GenericTypeArguments[1].IsAssignableFrom(types.DestinationType));
+        }
+        return fitting.Length > 1 ?
+            throw new AutoMapperConfigurationException(
+                $"{factoryType} can create the destination of the map from {types.SourceType} to {types.DestinationType} in more than one way: as {string.Join<Type>(" and as ", fitting)}. " +
+                $"Implement IDestinationFactory<TSource, TDestination> for exactly the types of the map too, or use a factory class that fits in one way only.") :
+            fitting.FirstOrDefault();
     }
     public void ConvertUsing(Type typeConverterType)
     {
@@ -434,3 +460,6 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
         return this as TMappingExpression;
     }
 }
+// An open generic destination factory that could not be closed yet, for a map with closed types. It builds the construction
+// function of that map once it is given the types of the open map: see MappingExpressionBase.DestinationFactoryFunction.
+delegate LambdaExpression OpenDestinationFactory(TypePair openTypes);

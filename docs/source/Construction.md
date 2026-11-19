@@ -107,6 +107,10 @@ cfg.CreateMap(typeof(Order), typeof(OrderDto)).ConstructUsing(typeof(OrderDtoFac
 
 That type is checked when the configuration is created. It has to implement `IDestinationFactory<TSource, TDestination>` with a `TSource` that the source type of the map can be assigned to and a `TDestination` that can be assigned to its destination type; otherwise the configuration throws an `AutoMapperConfigurationException` that names the factory and the map. A factory written for a base source type, or one that returns a derived destination type, fits: the interface is variant, so the generic overload accepts it too.
 
+A factory class can implement the interface more than once. The implementation for exactly the source and the destination type of the map is the one that is used. Without one, exactly one implementation has to fit: when several do, nothing says which of them was meant, and the configuration throws an `AutoMapperConfigurationException` that lists them.
+
+On a map created from types, and in `ForAllMaps`, the mapping expression has no type arguments, so the compiler can check `ConstructUsing<TDestinationFactory>()` against `IDestinationFactory<object, object>` only: a factory for `object` is accepted whatever it returns, and what it returns is cast to the destination type when an object is mapped. `ConstructUsing(Type)` accepts such a factory there too, when what it returns is a base type of the destination type, `object` for example; an implementation that fits the types of the map without a cast is still preferred. Either way, a factory that returns an object of another type fails with an `InvalidCastException` when an object is mapped. On `CreateMap<Order, OrderDto>()` neither overload accepts a factory that returns a base type of `OrderDto`: the compiler refuses the generic one, and the configuration throws for the other.
+
 An open generic map takes an open generic factory. It is closed the way an open generic type converter is (see [Open Generics](Open-Generics.md)): with the type arguments of the source type, followed by those of the destination type.
 
 ```c#
@@ -118,6 +122,8 @@ cfg.CreateMap(typeof(Source<>), typeof(Destination<>)).ConstructUsing(typeof(Des
 ```
 
 For an open generic map the types can only be checked for each closed map, so a factory that does not fit `Source<int>` and `Destination<int>` fails when those two are first mapped, not when the configuration is created.
+
+An open generic factory can also be given through `ForAllMaps`, to the open generic maps among them: for each closed map it is closed the same way, with the type arguments of the sides that are open in the open generic map. A map that was not closed from an open generic map has no such side, and the configuration throws an `AutoMapperConfigurationException` (`Cannot close the open generic destination factory ...`) when it is created.
 
 In everything else a factory behaves like the `ConstructUsing((source, context) => ...)` lambda:
 

@@ -250,7 +250,9 @@ public class ForPathWithNullExpressionShouldFail
     [Fact]
     public void Should_throw_exception()
     {
-        Assert.Throws<NullReferenceException>(() =>
+        // The null expression is refused at once. When that is caught, the path is left without a source, and the
+        // configuration fails as well: it used to end in a bare NullReferenceException.
+        var exception = Assert.Throws<AutoMapperConfigurationException>(() =>
         {
             var cfg = new MapperConfiguration(config =>
             {
@@ -261,6 +263,7 @@ public class ForPathWithNullExpressionShouldFail
                 });
             });
         });
+        exception.Message.ShouldStartWith($"The path Name of the map from {typeof(SourceModel)} to {typeof(DestinationModel)} has nothing to map from: ForPath was given no MapFrom for it.");
     }
 }
 

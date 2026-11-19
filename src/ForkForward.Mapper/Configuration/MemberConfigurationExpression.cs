@@ -210,7 +210,17 @@ static class ClassCondition
                     $"{conditionType} is an open generic type. It is closed with the type arguments of the map it is configured on, and a map that inherits from {typeMap.SourceType} -> {typeMap.DestinationType} does not inherit it. Configure it on that map too, or use a class that is not generic.")),
                     typeof(bool)));
             }
-            conditionType = typeMap.MakeGenericType(conditionType);
+            try
+            {
+                conditionType = typeMap.MakeGenericType(conditionType);
+            }
+            // A map without type arguments, with fewer of them than the class has type parameters, or with one that the class does not accept.
+            catch (ArgumentException ex)
+            {
+                throw new AutoMapperConfigurationException(
+                    $"Cannot close the open generic {(openInterface == typeof(IMemberPreCondition<,>) ? "precondition" : "condition")} class {conditionType} for the map from {typeMap.SourceType} to {typeMap.DestinationType}. " +
+                    "It is closed with the type arguments of the source type, followed by those of the destination type.", ex);
+            }
         }
         var interfaceType = GetInterface(conditionType, openInterface, nameof(conditionType));
         var shouldMap = interfaceType.GetMethod("ShouldMap");

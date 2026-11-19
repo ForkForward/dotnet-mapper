@@ -740,6 +740,144 @@ public class When_the_type_passed_to_ConstructUsing_cannot_create_the_destinatio
             .ParamName.ShouldBe("destinationFactoryType");
 }
 
+// The factory was called through the first interface that fits, in the order in which reflection lists the interfaces
+// of a type, which is not specified.
+public class When_a_destination_factory_passed_as_a_type_fits_in_more_than_one_way
+{
+    class BaseSource
+    {
+    }
+    interface ISource
+    {
+    }
+    class Source : BaseSource, ISource
+    {
+    }
+    class Destination(string createdBy)
+    {
+        public string CreatedBy { get; } = createdBy;
+    }
+    // Neither interface is for exactly Source and Destination, and both can be called with a Source.
+    class TwoWays : IDestinationFactory<BaseSource, Destination>, IDestinationFactory<ISource, Destination>
+    {
+        Destination IDestinationFactory<BaseSource, Destination>.Create(BaseSource source, ResolutionContext context) => new("for BaseSource");
+        Destination IDestinationFactory<ISource, Destination>.Create(ISource source, ResolutionContext context) => new("for ISource");
+    }
+    class TwoWaysAndTheTypesOfTheMap : TwoWays, IDestinationFactory<Source, Destination>
+    {
+        public Destination Create(Source source, ResolutionContext context) => new("for Source");
+    }
+    static string CreatedBy<TSource>(Type factoryType) where TSource : new() =>
+        new MapperConfiguration(cfg => cfg.CreateMap<TSource, Destination>().ConstructUsing(factoryType)).CreateMapper().Map<Destination>(new TSource()).CreatedBy;
+    [Fact]
+    public void It_is_refused_when_the_configuration_is_built()
+    {
+        // Before: accepted, and "for BaseSource" or "for ISource".
+        var message = new Action(() => CreatedBy<Source>(typeof(TwoWays))).ShouldThrow<AutoMapperConfigurationException>().Message;
+        message.ShouldStartWith($"{typeof(TwoWays)} can create the destination of the map from {typeof(Source)} to {typeof(Destination)} in more than one way: ");
+        message.ShouldContain(typeof(IDestinationFactory<BaseSource, Destination>).ToString(), Case.Sensitive);
+        message.ShouldContain(typeof(IDestinationFactory<ISource, Destination>).ToString(), Case.Sensitive);
+    }
+    [Fact]
+    public void A_map_created_from_types_refuses_it_the_same_way() =>
+        new Action(() => new MapperConfiguration(cfg => cfg.CreateMap(typeof(Source), typeof(Destination)).ConstructUsing(typeof(TwoWays)))).ShouldThrow<AutoMapperConfigurationException>()
+            .Message.ShouldStartWith($"{typeof(TwoWays)} can create the destination of the map from {typeof(Source)} to {typeof(Destination)} in more than one way: ");
+    [Fact]
+    public void The_interface_for_exactly_the_types_of_the_map_wins() => CreatedBy<Source>(typeof(TwoWaysAndTheTypesOfTheMap)).ShouldBe("for Source");
+    [Fact]
+    public void A_map_that_only_one_of_the_interfaces_fits_uses_that_one() => CreatedBy<BaseSource>(typeof(TwoWays)).ShouldBe("for BaseSource");
+}
+
+// On CreateMap<TSource, TDestination>() the compiler checks ConstructUsing<TDestinationFactory>() against the types of
+// the map. On a map created from types, and in ForAllMaps, it can only check against object and object: a factory for
+// object is accepted, and what it returns is cast when an object is mapped. The type overload refused such a factory
+// there, because object is not a type that can be assigned to the destination type.
+public class When_a_destination_factory_for_object_is_passed_as_a_type_to_a_map_created_from_types
+{
+    class Source
+    {
+        public int Value { get; set; }
+    }
+    class Destination(string createdBy)
+    {
+        public string CreatedBy { get; } = createdBy;
+        public int Value { get; set; }
+    }
+    class DerivedDestination(string createdBy) : Destination(createdBy);
+    class Other
+    {
+    }
+    class ObjectFactory : IDestinationFactory<object, object>
+    {
+        public object Create(object source, ResolutionContext context) => new DerivedDestination("object factory");
+    }
+    class BaseTypeFactory : IDestinationFactory<object, Destination>
+    {
+        public Destination Create(object source, ResolutionContext context) => new("base type factory");
+    }
+    class OtherFactory : IDestinationFactory<object, Other>
+    {
+        public Other Create(object source, ResolutionContext context) => new();
+    }
+    class TwoBaseTypesFactory : IDestinationFactory<object, object>, IDestinationFactory<object, Destination>
+    {
+        public object Create(object source, ResolutionContext context) => new DerivedDestination("object");
+        Destination IDestinationFactory<object, Destination>.Create(object source, ResolutionContext context) => new DerivedDestination("destination");
+    }
+    static Destination Map<TDestination>(Action<IMappingExpression> constructUsing) where TDestination : Destination
+    {
+        var configuration = new MapperConfiguration(cfg => constructUsing(cfg.CreateMap(typeof(Source), typeof(TDestination))));
+        configuration.AssertConfigurationIsValid();
+        var destination = configuration.CreateMapper().Map<TDestination>(new Source { Value = 42 });
+        destination.Value.ShouldBe(42);
+        return destination;
+    }
+    [Fact]
+    public void The_type_overload_accepts_what_the_generic_overload_accepts()
+    {
+        Map<Destination>(map => map.ConstructUsing<ObjectFactory>()).CreatedBy.ShouldBe("object factory");
+        // Before: an AutoMapperConfigurationException.
+        Map<Destination>(map => map.ConstructUsing(typeof(ObjectFactory))).CreatedBy.ShouldBe("object factory");
+        Map<DerivedDestination>(map => map.ConstructUsing(typeof(ObjectFactory))).CreatedBy.ShouldBe("object factory");
+    }
+    [Fact]
+    public void It_does_in_ForAllMaps_too()
+    {
+        var configuration = new MapperConfiguration(cfg =>
+        {
+            cfg.CreateMap<Source, Destination>();
+            cfg.ForAllMaps((typeMap, map) => map.ConstructUsing(typeof(ObjectFactory)));
+        });
+        configuration.CreateMapper().Map<Destination>(new Source()).CreatedBy.ShouldBe("object factory");
+    }
+    [Fact]
+    public void What_the_factory_returns_is_cast_when_an_object_is_mapped_as_with_the_generic_overload()
+    {
+        foreach (var constructUsing in new Action<IMappingExpression>[] { map => map.ConstructUsing<BaseTypeFactory>(), map => map.ConstructUsing(typeof(BaseTypeFactory)) })
+        {
+            Map<Destination>(constructUsing).CreatedBy.ShouldBe("base type factory");
+            // The factory returns a Destination where the map needs a DerivedDestination.
+            new Action(() => Map<DerivedDestination>(constructUsing)).ShouldThrow<InvalidCastException>();
+        }
+    }
+    [Fact]
+    public void A_factory_for_a_type_that_the_destination_cannot_be_cast_from_is_still_refused_when_the_configuration_is_built() =>
+        new Action(() => Map<Destination>(map => map.ConstructUsing(typeof(OtherFactory)))).ShouldThrow<AutoMapperConfigurationException>()
+            .Message.ShouldStartWith($"{typeof(OtherFactory)} cannot create the destination of the map from {typeof(Source)} to {typeof(Destination)}.");
+    [Fact]
+    public void A_factory_that_fits_this_way_more_than_once_is_refused() =>
+        new Action(() => Map<DerivedDestination>(map => map.ConstructUsing(typeof(TwoBaseTypesFactory)))).ShouldThrow<AutoMapperConfigurationException>()
+            .Message.ShouldStartWith($"{typeof(TwoBaseTypesFactory)} can create the destination of the map from {typeof(Source)} to {typeof(DerivedDestination)} in more than one way: ");
+    [Fact]
+    public void An_interface_that_fits_the_types_of_the_map_comes_first() =>
+        // IDestinationFactory<object, Destination> returns what the map needs; IDestinationFactory<object, object> would need the cast.
+        Map<Destination>(map => map.ConstructUsing(typeof(TwoBaseTypesFactory))).CreatedBy.ShouldBe("destination");
+    [Fact]
+    public void A_map_created_with_type_arguments_still_refuses_it_as_the_compiler_refuses_the_generic_overload_there() =>
+        new Action(() => new MapperConfiguration(cfg => cfg.CreateMap<Source, Destination>().ConstructUsing(typeof(ObjectFactory)))).ShouldThrow<AutoMapperConfigurationException>()
+            .Message.ShouldStartWith($"{typeof(ObjectFactory)} cannot create the destination of the map from {typeof(Source)} to {typeof(Destination)}.");
+}
+
 public class When_an_open_generic_map_has_an_open_generic_destination_factory : AutoMapperSpecBase
 {
     class Source<T>
@@ -1100,4 +1238,87 @@ public class When_all_maps_get_a_destination_factory : AutoMapperSpecBase
         destination.Inner.CreatedBy().ShouldBe("factory of InnerDestination");
         destination.Inner.Value.ShouldBe(2);
     }
+}
+
+// The expression that ForAllMaps hands out for a closed generic map has the closed types of that map. It cannot tell
+// which of them were open in the open generic map, so it could not close the factory: the configuration was created,
+// and every closed map failed on first use with "Cannot close the open generic destination factory".
+public class When_all_maps_get_an_open_generic_destination_factory : AutoMapperSpecBase
+{
+    class Source<T>
+    {
+        public T Value { get; set; }
+    }
+    class Destination<T>(string createdBy)
+    {
+        public string CreatedBy { get; } = createdBy;
+        public T Value { get; set; }
+    }
+    class OtherDestination<T>(string createdBy) : Destination<T>(createdBy);
+    class Factory<T> : IDestinationFactory<Source<T>, Destination<T>>
+    {
+        public Destination<T> Create(Source<T> source, ResolutionContext context) => new("factory of " + typeof(T).Name);
+    }
+    class ToGenericFactory<T> : IDestinationFactory<Source<int>, OtherDestination<T>>
+    {
+        public OtherDestination<T> Create(Source<int> source, ResolutionContext context) => new("factory to " + typeof(T).Name);
+    }
+    class Converter<TSource, TDestination> : ITypeConverter<Source<TSource>, Destination<TDestination>>
+    {
+        public Destination<TDestination> Convert(Source<TSource> source, Destination<TDestination> destination, ResolutionContext context) => new("converter");
+    }
+    protected override MapperConfiguration CreateConfiguration() => new(cfg =>
+    {
+        cfg.CreateMap(typeof(Source<>), typeof(Destination<>));
+        cfg.CreateMap(typeof(Source<int>), typeof(OtherDestination<>));
+        cfg.Internal().ForAllMaps((typeMap, map) => map.ConstructUsing(typeMap.DestinationType.IsGenericType(typeof(OtherDestination<>)) ? typeof(ToGenericFactory<>) : typeof(Factory<>)));
+    });
+    [Fact]
+    public void Should_close_the_factory_for_each_closed_map()
+    {
+        // Before: an AutoMapperConfigurationException for each of them.
+        var ofInt = Mapper.Map<Destination<int>>(new Source<int> { Value = 42 });
+        ofInt.CreatedBy.ShouldBe("factory of Int32");
+        ofInt.Value.ShouldBe(42);
+        var ofString = Mapper.Map<Destination<string>>(new Source<string> { Value = "value" });
+        ofString.CreatedBy.ShouldBe("factory of String");
+        ofString.Value.ShouldBe("value");
+    }
+    [Fact]
+    public void Should_close_the_factory_with_the_type_arguments_of_the_side_that_is_open_in_the_open_map()
+    {
+        // As when the open generic map is given the factory itself: Source<int> is closed there, so its int does not count.
+        var destination = Mapper.Map<OtherDestination<long>>(new Source<int> { Value = 42 });
+        destination.CreatedBy.ShouldBe("factory to Int64");
+        destination.Value.ShouldBe(42);
+    }
+    [Fact]
+    public void An_open_generic_type_converter_given_the_same_way_is_closed_the_same_way()
+    {
+        var configuration = new MapperConfiguration(cfg =>
+        {
+            cfg.CreateMap(typeof(Source<>), typeof(Destination<>));
+            cfg.Internal().ForAllMaps((typeMap, map) => map.ConvertUsing(typeof(Converter<,>)));
+        });
+        configuration.CreateMapper().Map<Destination<long>>(new Source<int>()).CreatedBy.ShouldBe("converter");
+    }
+    [Fact]
+    public void A_map_that_was_not_made_from_an_open_generic_map_still_fails_when_the_configuration_is_built()
+    {
+        foreach (var createMap in new Action<IMapperConfigurationExpression>[] { cfg => cfg.CreateMap<Source<int>, Destination<int>>(), cfg => cfg.CreateMap<string, Destination<int>>() })
+        {
+            var exception = new Action(() => new MapperConfiguration(cfg =>
+            {
+                createMap(cfg);
+                cfg.Internal().ForAllMaps((typeMap, map) => map.ConstructUsing(typeof(Factory<>)));
+            })).ShouldThrow<AutoMapperConfigurationException>();
+            exception.Message.ShouldStartWith($"Cannot close the open generic destination factory {typeof(Factory<>)} for the map from ");
+            exception.InnerException.ShouldBeOfType<ArgumentException>();
+        }
+    }
+    [Fact]
+    public void A_factory_that_does_not_fit_a_closed_map_fails_when_that_map_is_first_used() =>
+        // As when the open generic map is given the factory itself. Closed with int, the factory is for Source<int> and Destination<int>.
+        new Action(() => Mapper.Map<Destination<long>>(new Source<int>())).ShouldThrow<AutoMapperConfigurationException>().Message.ShouldStartWith(
+            $"{typeof(Factory<int>)} cannot create the destination of the map from {typeof(Source<int>)} to {typeof(Destination<long>)}.");
 }

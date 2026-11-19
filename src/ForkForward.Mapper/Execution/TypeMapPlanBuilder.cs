@@ -168,25 +168,26 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     private Expression CreateAssignmentFunc(Expression createDestination)
     {
         List<Expression> actions = [createDestination];
-        Expression typeMapExpression = null;
-        var hasMaxDepth = _typeMap.MaxDepth > 0;
-        if (hasMaxDepth)
-        {
-            typeMapExpression = Constant(_typeMap);
-            // Counted before the destination is created, not after: creating it can already map the next level,
-            // through a constructor parameter or through ConstructUsing with the context.
-            actions.Insert(0, Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
-        }
         AddBeforeMap(actions);
         AddPropertyMaps(actions);
         AddPathMaps(actions);
         AddAfterMap(actions);
-        if (hasMaxDepth)
-        {
-            actions.Add(Call(ContextParameter, DecTypeDepthInfo, typeMapExpression));
-        }
         actions.Add(_destination);
-        return Block(actions);
+        if (_typeMap.MaxDepth == 0)
+        {
+            return Block(actions);
+        }
+        var typeMapExpression = Constant(_typeMap);
+        // Counted before the destination is created, not after: creating it can already map the next level,
+        // through a constructor parameter or through ConstructUsing with the context.
+        // The count is taken back in a finally block, so also when the level fails: a resolver, a converter or a
+        // destination factory can catch the error of a nested context.Mapper.Map and map on with the same context,
+        // and a level that failed must not stay counted there. On the way out of a deep graph the finally block of
+        // each level runs and returns before the next one starts: unlike a catch that throws again, it leaves
+        // nothing on the stack for the levels above it (see ExpressionBuilder.MaxExceptionWrappers). And unlike
+        // an exception filter, it also runs where plans are interpreted.
+        return Block(Call(ContextParameter, IncTypeDepthInfo, typeMapExpression),
+            TryFinally(Block(actions), Call(ContextParameter, DecTypeDepthInfo, typeMapExpression)));
     }
     private void AddAfterMap(List<Expression> actions)
     {
@@ -212,6 +213,13 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             if (pathMap.Ignored)
             {
                 continue;
+            }
+            if (pathMap.Resolver == null)
+            {
+                // ForPath with a condition and no MapFrom. A path has no source member of the same name to fall back on, as a member has.
+                throw new AutoMapperConfigurationException(
+                    $"The path {pathMap.DestinationName} of the map from {_typeMap.SourceType} to {_typeMap.DestinationType} has nothing to map from: ForPath was given no MapFrom for it. " +
+                    $"Add one, as in ForPath(destination => destination.{pathMap.DestinationName}, o => o.MapFrom(source => ...)), or ignore the path with o.Ignore().");
             }
             _memberMap = pathMap;
             actions.Add(TryPathMap(pathMap));
