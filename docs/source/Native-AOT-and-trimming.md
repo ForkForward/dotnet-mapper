@@ -62,10 +62,10 @@ The protection against [CVE-2026-32933](https://github.com/ForkForward/dotnet-ma
 
 ## Runtimes without dynamic code, nothing trimmed
 
-Where the runtime cannot generate code but nothing is trimmed, the library mostly works: its unit tests are run this way on every change (`dotnet test src/UnitTests -p:DynamicCodeSupport=false`), and 1,166 of 1,192 pass. The 26 that are skipped in that run are the known differences:
+Where the runtime cannot generate code but nothing is trimmed, the library mostly works: its unit tests are run this way on every change (`dotnet test src/UnitTests -p:DynamicCodeSupport=false`), and 1,486 of 1,513 pass. The 27 that are skipped in that run are the known differences:
 
-- **Interface proxies and `let` clauses in projections** (20 tests) throw a `PlatformNotSupportedException`, wrapped in a `TypeInitializationException`: they generate a type with Reflection.Emit.
-- **An error from a member that maps through the context is not wrapped** (4 tests). A nested map, a collection of mapped elements, or a resolver or converter that is given the context: when one of these fails, the exception arrives as it was thrown, without the `AutoMapperMappingException` that names the member. Errors from plain members are wrapped as usual. The catch for these members has an exception filter, and the expression interpreter fails while it evaluates that filter.
+- **Interface proxies and `let` clauses in projections** (20 tests) throw a `PlatformNotSupportedException`, wrapped in a `TypeInitializationException`: they generate a type with Reflection.Emit. For a `let` clause that exception arrives inside the `AutoMapperMappingException` that says `Error building the projection.` and names the map.
+- **An error from a member that maps through the context is not wrapped** (5 tests). A nested map, a collection of mapped elements, a resolver, converter or condition class that is given the context: when one of these fails, the exception arrives as it was thrown, without the `AutoMapperMappingException` that names the member. Errors from plain members are wrapped as usual. The catch for these members has an exception filter, and the expression interpreter fails while it evaluates that filter.
 - **`ForPath` through fields of nested value types does not set the values** (1 test). Not investigated yet.
 - **A level of a nested graph needs more stack** (1 test). On a 1 MB stack a chain of 400 objects no longer fits, where a compiled plan maps about 1,000. On CoreCLR the result is still the `AutoMapperMappingException` that says the graph is nested too deeply, not a crash.
 

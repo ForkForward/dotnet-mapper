@@ -218,6 +218,83 @@ Ideally, you would avoid models that reference themselves (do some research). Bu
 configuration.Internal().RecursiveQueriesMaxDepth = someRandomNumber;
 ```
 
+### Polymorphic projection
+
+When a map includes derived maps (`Include`, `IncludeBase`, `IncludeAllDerived`), `ProjectTo` tests the type of every row and creates the destination type of the matching derived map:
+
+```c#
+using ForkForward.Mapper;
+using ForkForward.Mapper.QueryableExtensions;
+
+var configuration = new MapperConfiguration(cfg =>
+{
+    cfg.CreateMap<Animal, AnimalDto>().Include<Cat, CatDto>();
+    cfg.CreateMap<Cat, CatDto>();
+});
+
+dbContext.Animals.ProjectTo<AnimalDto>(configuration);
+// Select(a => a is Cat
+//     ? new CatDto { Meows = (a as Cat).Meows, Name = (a as Cat).Name }
+//     : new AnimalDto { Name = a.Name })
+```
+
+The type tests make the query read every derived type. With Entity Framework Core and SQL Server that is a test of the discriminator and the columns of the derived types, or, with table-per-type inheritance, a join for every derived table. Some LINQ providers cannot translate a type test at all.
+
+!!! info "New in this fork"
+
+    The switch below is not in AutoMapper 14. It comes with the release that follows 14.1.1. Without it nothing changes: polymorphic projection is on, and the projection is the one shown above.
+
+When the derived maps are there for `Map` and a query needs only the base members, switch polymorphic projection off for the map:
+
+```c#
+cfg.CreateMap<Animal, AnimalDto>()
+    .Include<Cat, CatDto>()
+    .PolymorphicProjection(false);
+
+dbContext.Animals.ProjectTo<AnimalDto>(configuration);
+// Select(a => new AnimalDto { Name = a.Name })
+```
+
+Every row is projected with that map alone. There is no type test and no cast, no member of a derived type is read, and every result is an `AnimalDto`. The SQL is the one a hand-written `Select` gives. With Entity Framework Core 9 and SQL Server, for a hierarchy stored in one table:
+
+```sql
+-- on
+SELECT CASE
+    WHEN [a].[Discriminator] = N'Cat' THEN CAST(1 AS bit)
+    ELSE CAST(0 AS bit)
+END, [a].[Meows], [a].[Name]
+FROM [Animals] AS [a]
+
+-- off
+SELECT [a].[Name]
+FROM [Animals] AS [a]
+```
+
+To switch it off for every map of a configuration:
+
+```c#
+using ForkForward.Mapper.Internal;
+
+cfg.Internal().PolymorphicProjection = false;
+```
+
+A map's own setting wins over the one of the configuration, in both directions: `PolymorphicProjection(true)` keeps a map polymorphic when it is switched off for the configuration. A map without its own setting follows the configuration.
+
+`PolymorphicProjection` is there on `CreateMap` and on `CreateProjection`.
+
+Which map decides:
+
+- For the query itself, the map `ProjectTo` uses for the element type of the query and the requested destination type.
+- For a member, the map of the member's type. That holds for a nested object and for the elements of a collection. The map that contains the member has no say.
+
+What it does not do:
+
+- **It is not inherited.** A derived map does not take the setting from its base map. Each map that has derived maps decides for itself. Say the map from `Cat` to `CatDto` includes one from `Kitten` to `KittenDto`. With the map from `Animal` to `AnimalDto` switched off, a query over cats still creates a `KittenDto` for a kitten, until the cat map is switched off too. The map that `ReverseMap` creates does not take the setting either.
+- **It does not choose the map of a query.** `ProjectTo<AnimalDto>` on an `IQueryable<Cat>` uses the map from `Cat` to `CatDto` and returns `CatDto` objects, on or off. That needs no type test.
+- **It does not change `Map`.** In-memory mapping stays polymorphic: `mapper.Map<AnimalDto>(cat)` returns a `CatDto`.
+- **It cannot be changed after the configuration is built.** Projections are cached per configuration.
+- **It does not work for a map whose destination type is abstract or an interface.** With polymorphic projection on, a row that matches no derived map gets `null`. With it off there is no type left to create, and `ProjectTo` throws an `AutoMapperMappingException` that names the map, when the query is built and not when it runs. Leave it on for such a map, or tell the map what to create with `ConstructUsing` or `ConvertUsing`. A map that names its destination type with `As` is not affected: the map it names is the one that is projected.
+
 ### Supported mapping options
 
 Not all mapping options can be supported, as the expression generated must be interpreted by a LINQ provider. Only what is supported by LINQ providers is supported by AutoMapper:

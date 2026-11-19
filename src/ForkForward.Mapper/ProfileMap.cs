@@ -169,6 +169,11 @@ public sealed class ProfileMap
     private void Configure(TypeMapConfiguration typeMapConfiguration, IGlobalConfiguration configuration)
     {
         var typeMap = typeMapConfiguration.TypeMap;
+        // an open generic configuration that was already used to create a closed map points to that map
+        if (typeMap.Types != typeMapConfiguration.Types)
+        {
+            typeMap = configuration.FindTypeMapFor(typeMapConfiguration.Types);
+        }
         if (typeMap.IncludeAllDerivedTypes)
         {
             IncludeAllDerived(configuration, typeMap);

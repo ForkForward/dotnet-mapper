@@ -26,6 +26,9 @@ public class EmployeesController {
 	// use _mapper.Map or _mapper.ProjectTo
 }
 ```
+
+`AddAutoMapper` also registers the [destination factories](Construction.md#creating-the-destination-with-a-factory-class) it finds in those assemblies, as transient services. A map configured with `ConstructUsing<OrderDtoFactory>()` gets its factory from the container each time it creates a destination object, so the factory can take dependencies in its constructor, and a mapper resolved from a scope gives it that scope's services. `ProjectTo` does not use destination factories.
+
 ### AutoFac
 
 There is a third-party [NuGet package](https://www.nuget.org/packages/AutoMapper.Contrib.Autofac.DependencyInjection) you might want to try.
@@ -54,6 +57,8 @@ var mapper = new Mapper(configuration, childContainer.GetInstance);
 
 var dest = mapper.Map<Source, Destination>(new Source { Value = 15 });
 ```
+
+[Conditions and preconditions written as classes](Conditional-mapping.md#conditions-as-classes) are created the same way, each time they are evaluated. `AddAutoMapper` registers the ones it finds in the scanned assemblies as transient, so `opt.Condition<InStock>()` works with a class such as `public class InStock(IWarehouse warehouse) : IMemberCondition<Order, OrderDto, int>`, and a mapper resolved from a scope gives it scoped services. Without a container the class needs a parameterless constructor. `ProjectTo` ignores conditions.
 
 ## Queryable Extensions
 

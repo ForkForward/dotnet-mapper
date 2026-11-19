@@ -113,6 +113,13 @@ public sealed class MapperConfigurationExpression : Profile, IGlobalConfiguratio
     /// </summary>
     int IGlobalConfigurationExpression.RecursiveQueriesMaxDepth { get; set; }
 
+    /// <summary>
+    /// Whether ProjectTo tests the runtime type of each source object and creates the destination type of the matching derived map
+    /// (Include, IncludeBase, IncludeAllDerived). Default true. When false, a map is projected on its own, without its derived maps.
+    /// A map can decide for itself with PolymorphicProjection. Not used by Map.
+    /// </summary>
+    bool IGlobalConfigurationExpression.PolymorphicProjection { get; set; } = true;
+
     IReadOnlyCollection<IProfileConfiguration> IGlobalConfigurationExpression.Profiles => _profiles;
     Func<Type, object> IGlobalConfigurationExpression.ServiceCtor => _serviceCtor;
 

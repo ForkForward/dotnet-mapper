@@ -87,6 +87,128 @@ public class DeeplyNestedSourceGraphs
         exception.ShouldBeAssignableTo<AutoMapperMappingException>().Message.ShouldContain("nested too deeply", Case.Sensitive);
     }
 
+    // The other ways from one level of a source graph to the next. Each of them goes through the mapper for every
+    // level, so each ends in the same exception; no MaxDepth is configured in any of them.
+    public class ConstructorNodeDto
+    {
+        public ConstructorNodeDto(ConstructorNodeDto next) => Next = next;
+        public ConstructorNodeDto Next { get; }
+    }
+    public record RecordNodeDto(RecordNodeDto Next, int Value = 0);
+    public class DerivedNode : Node { }
+    public class DerivedNodeDto : NodeDto { }
+    public class ObjectNode
+    {
+        public int Value { get; set; }
+        public object Next { get; set; }
+    }
+    public interface INode
+    {
+        INode Next { get; }
+    }
+    public class InterfaceNode : INode
+    {
+        public int Value { get; set; }
+        public INode Next { get; set; }
+    }
+
+    [Fact]
+    public void Too_deep_through_a_constructor_parameter_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Node, ConstructorNodeDto>()).CreateMapper();
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<ConstructorNodeDto>(Chain(100_000))));
+    }
+
+    [Fact]
+    public void Too_deep_through_the_constructor_of_a_positional_record_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Node, RecordNodeDto>()).CreateMapper();
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<RecordNodeDto>(Chain(100_000))));
+    }
+
+    [Fact]
+    public void Too_deep_through_a_derived_map_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg =>
+        {
+            cfg.CreateMap<Node, NodeDto>().Include<DerivedNode, DerivedNodeDto>();
+            cfg.CreateMap<DerivedNode, DerivedNodeDto>();
+        }).CreateMapper();
+        Node source = null;
+        for (var i = 0; i < 100_000; i++)
+        {
+            source = new DerivedNode { Value = i, Next = source };
+        }
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<NodeDto>(source)));
+    }
+
+    [Fact]
+    public void Too_deep_through_a_source_member_typed_as_object_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<ObjectNode, NodeDto>()).CreateMapper();
+        ObjectNode source = null;
+        for (var i = 0; i < 100_000; i++)
+        {
+            source = new ObjectNode { Value = i, Next = source };
+        }
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<NodeDto>(source)));
+    }
+
+    [Fact]
+    public void Too_deep_through_a_source_member_typed_as_an_interface_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<InterfaceNode, NodeDto>()).CreateMapper();
+        InterfaceNode source = null;
+        for (var i = 0; i < 100_000; i++)
+        {
+            source = new InterfaceNode { Value = i, Next = source };
+        }
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<NodeDto>(source)));
+    }
+
+    [Fact]
+    public void Too_deep_through_nested_dictionaries_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(_ => { }).CreateMapper();
+        Dictionary<string, object> source = null;
+        for (var i = 0; i < 100_000; i++)
+        {
+            source = new() { ["Value"] = i, ["Next"] = source };
+        }
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<NodeDto>(source)));
+    }
+
+    [Fact]
+    public void Too_deep_through_nested_expando_objects_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(_ => { }).CreateMapper();
+        System.Dynamic.ExpandoObject source = null;
+        for (var i = 0; i < 100_000; i++)
+        {
+            System.Dynamic.ExpandoObject node = new();
+            IDictionary<string, object> members = node;
+            members["Value"] = i;
+            members["Next"] = source;
+            source = node;
+        }
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<NodeDto>(source)));
+    }
+
+    [Fact]
+    public void Too_deep_through_ConstructUsing_that_maps_with_the_context_throws_instead_of_ending_the_process()
+    {
+        var mapper = new MapperConfiguration(cfg => cfg.CreateMap<Node, ConstructorNodeDto>().ConstructUsing((source, context) =>
+            new ConstructorNodeDto(source.Next == null ? null : context.Mapper.Map<ConstructorNodeDto>(source.Next)))).CreateMapper();
+        ShouldBeNestedTooDeeply(OnSmallStack(() => mapper.Map<ConstructorNodeDto>(Chain(100_000))));
+    }
+
+    static void ShouldBeNestedTooDeeply(Exception exception)
+    {
+        var mappingException = exception.ShouldBeAssignableTo<AutoMapperMappingException>();
+        mappingException.Message.ShouldContain("nested too deeply", Case.Sensitive);
+        mappingException.InnerException.ShouldBeNull();
+    }
+
     [CompiledPlansFact(CompiledPlansFactAttribute.NeedsMoreStack)]
     public void An_error_deep_in_a_graph_that_fits_is_reported_instead_of_ending_the_process()
     {

@@ -101,6 +101,8 @@ var configuration = new MapperConfiguration(cfg => {
 This will map the following properties to each other:
 `  property_name -> PropertyName `
 
+A run of capital letters in a PascalCase destination member is read as one word, and its last capital starts the next word when a lower case letter follows it: `form_xml -> FormXML`, `xml_file -> XMLFile`, `https_connection -> HTTPSConnection`. A digit stays in the word it follows: `html5_parser -> HTML5Parser`. The reading in which every capital starts a word (`a_b_count -> ABCount`) is tried first, so where both find a source member, that one is used.
+
 You can also set this per profile
 
 ```c#
@@ -232,3 +234,24 @@ A type that contains itself (a tree, a linked list) is mapped one level at a tim
 If a graph of that depth is legitimate, map it on a thread with a larger stack (`new Thread(work, maxStackSize)`), or set `MaxDepth` on the type map to stop at a fixed depth. Where the depth comes from outside the application, the exception is the intended outcome: before this fork the same input ended in a `StackOverflowException`, which cannot be caught and ends the process ([CVE-2026-32933](https://github.com/advisories/GHSA-rvv3-g6hj-g44x)).
 
 A mapping error deep in a graph is wrapped in an `AutoMapperMappingException` by each of the innermost 8 levels, each wrapper naming the member that was being mapped, and then passed up unchanged. Wrapping at every level used to end the process for an error a few hundred levels deep.
+
+### `MaxDepth`
+
+`MaxDepth` limits how many objects of one type map are mapped inside one another:
+
+```c#
+cfg.CreateMap<Category, CategoryDto>().MaxDepth(3);
+```
+
+A category, its parent and the parent's parent are mapped. The member that would start a fourth level is set to `null`. The collection members of the object on the third level are left empty, whatever they hold; arrays are the exception: they are mapped, with `null` for each element that would be a fourth level.
+
+How the depth is counted:
+
+- Each type map counts for itself, within one `Map` call. The count is the number of objects of that map that are being mapped at that moment, one inside another; the elements of a collection are all on the same level.
+- A level is counted before its destination object is created, so it makes no difference whether the next level is reached through a property, through a constructor parameter (of a positional record, for example) or by `ConstructUsing` that maps with the context. Before the release that follows 14.1.1, as in AutoMapper 14, the limit was ignored on the last two routes and the whole graph was mapped. The same holds for the collections of the last level: one that is passed through a constructor is left empty where one in a property is. With `MaxDepth(1)` that is every collection of the map, of any element type; before, a collection in a constructor parameter was still filled there.
+- A derived map that sets no `MaxDepth` takes it from the map it inherits from, through `Include`, `IncludeBase` or `IncludeAllDerived`. Over several levels of inheritance the nearest map that sets one wins, and a `MaxDepth` set on the derived map itself always wins. Before the release that follows 14.1.1 a derived map had no limit unless it set one; to keep it that way, give the derived map a limit that no graph reaches, such as `MaxDepth(int.MaxValue)`.
+- The limit is inherited, the count is not shared. With `MaxDepth(3)` on a base map and a derived map that inherits it, a chain that alternates base and derived objects is mapped 6 levels deep: 3 of each map.
+
+`MaxDepth` has no effect on a map with `ConvertUsing`, where the converter does the mapping. The map created by `ReverseMap` does not get it: call `MaxDepth` again after `ReverseMap` if the reverse map needs one. In `ProjectTo` it is not a depth: it limits how many times the map is used in the query, and a derived map does not inherit it there.
+
+`MaxDepth` decides what the result contains. It is not what keeps a deep graph from ending the process: that is the check described above, which is always on and needs no configuration. A `MaxDepth` larger than the stack allows ends in the same exception as no `MaxDepth` at all.

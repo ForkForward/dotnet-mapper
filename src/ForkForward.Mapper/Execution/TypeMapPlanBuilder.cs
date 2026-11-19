@@ -15,6 +15,10 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     List<ParameterExpression> _variables = configuration.Variables;
     List<Expression> _expressions = configuration.Expressions;
     CatchBlock[] _catches = configuration.Catches;
+    // The member whose part of the plan is being built, null outside the members. When building the plan fails,
+    // TypeMap.CreateMapperLambda reports the error against it.
+    MemberMap _memberMap;
+    internal readonly MemberMap MemberMap => _memberMap;
     public Type DestinationType => _destination.Type;
     ParameterExpression[] GetParameters(ParameterExpression first = null, ParameterExpression second = null)
     {
@@ -134,8 +138,15 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 return null;
             }
-            var types = memberMap.Types();
-            return types.ContainsGenericParameters ? null : configuration.ResolveAssociatedTypeMap(types);
+            try
+            {
+                var types = memberMap.Types();
+                return types.ContainsGenericParameters ? null : configuration.ResolveAssociatedTypeMap(types);
+            }
+            catch (Exception exception) when (IsUnexpected(exception))
+            {
+                throw PlanBuildingError(exception, memberMap.TypeMap, memberMap);
+            }
         }
         [Conditional("DEBUG")]
         static void Trace(TypeMap typeMap, TypeMap memberTypeMap, MemberMap memberMap) =>
@@ -162,7 +173,9 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         if (hasMaxDepth)
         {
             typeMapExpression = Constant(_typeMap);
-            actions.Add(Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
+            // Counted before the destination is created, not after: creating it can already map the next level,
+            // through a constructor parameter or through ConstructUsing with the context.
+            actions.Insert(0, Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
         }
         AddBeforeMap(actions);
         AddPropertyMaps(actions);
@@ -200,8 +213,10 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 continue;
             }
+            _memberMap = pathMap;
             actions.Add(TryPathMap(pathMap));
         }
+        _memberMap = null;
     }
     private void AddBeforeMap(List<Expression> actions)
     {
@@ -228,6 +243,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 continue;
             }
+            _memberMap = propertyMap;
             var property = TryMemberMap(propertyMap, CreatePropertyMapFunc(propertyMap, _destination, propertyMap.DestinationMember));
             if (_typeMap.ConstructorParameterMatches(propertyMap.DestinationName))
             {
@@ -235,6 +251,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             }
             actions.Add(property);
         }
+        _memberMap = null;
     }
     private Expression TryPathMap(PathMap pathMap)
     {
@@ -290,10 +307,12 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         List<Expression> body = [];
         foreach (var parameter in constructorMap.CtorParams)
         {
+            _memberMap = parameter;
             var variable = Variable(parameter.DestinationType, parameter.DestinationName);
             variables.Add(variable);
             body.Add(Assign(variable, CreateConstructorParameterExpression(parameter)));
         }
+        _memberMap = null;
         body.Add(CheckReferencesCache(New(constructorMap.Ctor, variables)));
         return Block(variables, body);
     }
@@ -344,7 +363,8 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         if (memberMap.Condition != null)
         {
             _expressions.Add(IfThen(
-                _configuration.ConvertReplaceParameters(memberMap.Condition, [customSource, _destination, mappedMemberVariable, destinationMemberGetter, ContextParameter]),
+                _configuration.ConvertReplaceParameters(memberMap.Condition,
+                    [customSource, _destination, ConditionSourceMember(memberMap, resolvedValueVariable, mappedMemberVariable), destinationMemberGetter, ContextParameter]),
                 mapperExpr));
         }
         else if (!destinationMemberReadOnly)
@@ -356,6 +376,23 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             Precondition(memberMap, customSource);
         }
         return Block(_variables, _expressions);
+    }
+    // What a condition is given as the source member. A condition that declares it with the type of the destination
+    // member gets the value that is about to be assigned, as in AutoMapper 14. A condition that declares it with
+    // another type, which the resolved source value can be passed as without a conversion (object in ForAllMembers
+    // and in the non-generic API), gets the resolved source value: once mapped to the type of the destination member,
+    // a null that goes into a value type is that type's default value, and a condition that skips nulls never saw one.
+    static ParameterExpression ConditionSourceMember(MemberMap memberMap, ParameterExpression resolvedValue, ParameterExpression mappedValue)
+    {
+        var parameters = memberMap.Condition.Parameters;
+        if (parameters.Count < 3)
+        {
+            return mappedValue;
+        }
+        var declaredType = parameters[2].Type;
+        var resolvedType = resolvedValue.Type;
+        return declaredType != memberMap.DestinationType && (declaredType.IsValueType ? declaredType == resolvedType : declaredType.IsAssignableFrom(resolvedType)) ?
+            resolvedValue : mappedValue;
     }
     Expression DestinationMemberValue(MemberMap memberMap, Expression destinationMemberGetter, bool destinationMemberReadOnly)
     {
@@ -398,8 +435,13 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         var profile = _typeMap.Profile;
         var mapMember = memberMap.Inline ?
             _configuration.MapExpression(profile, typePair, resolvedValue, memberMap, destinationMemberValue) :
-            _configuration.NullCheckSource(profile, resolvedValue, destinationMemberValue, ContextMap(typePair, resolvedValue, destinationMemberValue, memberMap), memberMap);
+            _configuration.NullCheckSource(profile, resolvedValue, destinationMemberValue, ContextMap(typePair, SourceValue(typePair.SourceType, resolvedValue), destinationMemberValue, memberMap), memberMap);
         return memberMap.ApplyTransformers(mapMember, _configuration);
+        // NullCheck gives a chain of members and calls that ends in a T the type T? when the destination member is a T?,
+        // so that a null on the way maps to null and not to default(T). The member map still maps from T, and the call
+        // through the context is made for T: it gets the value, behind the null check that NullCheckSource puts in front.
+        static Expression SourceValue(Type sourceType, ParameterExpression resolvedValue) =>
+            resolvedValue.Type != sourceType && Nullable.GetUnderlyingType(resolvedValue.Type) == sourceType ? ExpressionBuilder.Property(resolvedValue, "Value") : resolvedValue;
     }
     private Expression BuildValueResolverFunc(MemberMap memberMap, Expression customSource, Expression destValueExpr)
     {

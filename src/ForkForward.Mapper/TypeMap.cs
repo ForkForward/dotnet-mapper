@@ -56,7 +56,15 @@ public sealed class TypeMap
     }
     public static Exception MissingMapException(TypePair types) => MissingMapException(types.SourceType, types.DestinationType);
     public static Exception MissingMapException(Type sourceType, Type destinationType)
-        => new InvalidOperationException($"Missing map from {sourceType} to {destinationType}. Create using CreateMap<{sourceType.Name}, {destinationType.Name}>.");
+    {
+        InvalidOperationException exception = new($"Missing map from {sourceType} to {destinationType}. Create using CreateMap<{sourceType.Name}, {destinationType.Name}>.");
+        // It is thrown on purpose and says what is missing, but its type is the framework's: the mark is how
+        // ExpressionBuilder.IsUnexpected knows it, so that it is passed on as it is, wherever it is thrown.
+        exception.Data[MissingMapMark] = true;
+        return exception;
+    }
+    const string MissingMapMark = "ForkForward.Mapper.MissingMap";
+    internal static bool IsMissingMapException(Exception exception) => exception is InvalidOperationException && exception.Data.Contains(MissingMapMark);
     public bool Projection { get; set; }
     public LambdaExpression MapExpression { get; private set; }
     public Expression Invoke(Expression source, Expression destination) =>
@@ -74,6 +82,10 @@ public sealed class TypeMap
     public LambdaExpression CustomCtorFunction { get => _details?.CustomCtorFunction; set => Details.CustomCtorFunction = value; }
     public LambdaExpression CustomCtorExpression => CustomCtorFunction is { Parameters: [_] } ? CustomCtorFunction : null;
     public bool IncludeAllDerivedTypes { get => (_details?.IncludeAllDerivedTypes).GetValueOrDefault(); set => Details.IncludeAllDerivedTypes = value; }
+    /// <summary>
+    /// Whether ProjectTo uses the derived maps of this map. Null when the map has no setting of its own and follows the configuration.
+    /// </summary>
+    public bool? PolymorphicProjection { get => _details?.PolymorphicProjection; set => Details.PolymorphicProjection = value; }
     public MemberList ConfiguredMemberList
     {
         get => (_details?.ConfiguredMemberList).GetValueOrDefault();
@@ -93,6 +105,9 @@ public sealed class TypeMap
     public IReadOnlyCollection<ValueTransformerConfiguration> ValueTransformers => (_details?.ValueTransformerConfigs).NullCheck();
     public bool PreserveReferences { get => (_details?.PreserveReferences).GetValueOrDefault(); set => Details.PreserveReferences = value; }
     public int MaxDepth { get => (_details?.MaxDepth).GetValueOrDefault(); set => Details.MaxDepth = value; }
+    // In a projection MaxDepth is not a depth: it counts how many times the map has been used in the query. A derived
+    // map does not inherit it there; it would leave members empty in projections that are complete today.
+    internal int ProjectionMaxDepth => _details is { MaxDepthInherited: false } ? _details.MaxDepth : 0;
     public bool DisableConstructorValidation { get => (_details?.DisableConstructorValidation).GetValueOrDefault(); set => Details.DisableConstructorValidation = value; }
     public IReadOnlyCollection<PropertyMap> PropertyMaps => _propertyMaps.NullCheck();
     public IReadOnlyCollection<PathMap> PathMaps => (_details?.PathMaps).NullCheck();
@@ -246,8 +261,25 @@ public sealed class TypeMap
     public void AddAfterMapAction(LambdaExpression afterMap) => Details.AddAfterMapAction(afterMap);
     public void AddValueTransformation(ValueTransformerConfiguration config) => Details.AddValueTransformation(config);
     public void ConstructUsingServiceLocator() => CustomCtorFunction = Lambda(ServiceLocator(DestinationType));
-    internal LambdaExpression CreateMapperLambda(IGlobalConfiguration configuration) =>
-        Types.ContainsGenericParameters ? null : new TypeMapPlanBuilder(configuration, this).CreateMapperLambda();
+    internal LambdaExpression CreateMapperLambda(IGlobalConfiguration configuration)
+    {
+        if (Types.ContainsGenericParameters)
+        {
+            return null;
+        }
+        TypeMapPlanBuilder builder = default;
+        try
+        {
+            builder = new(configuration, this);
+            return builder.CreateMapperLambda();
+        }
+        // A ForPath member that was given no source is passed on as it is: ForPathWithNullExpressionShouldFail pins
+        // the NullReferenceException it ends in.
+        catch (Exception exception) when (IsUnexpected(exception) && builder.MemberMap is not PathMap { Resolver: null })
+        {
+            throw PlanBuildingError(exception, this, builder.MemberMap);
+        }
+    }
     private PropertyMap GetPropertyMap(string name)
     {
         if (_propertyMaps == null)
@@ -287,7 +319,9 @@ public sealed class TypeMap
         public string[] IncludedMembersNames;
         public bool DisableConstructorValidation;
         public int MaxDepth;
+        public bool MaxDepthInherited;
         public bool IncludeAllDerivedTypes;
+        public bool? PolymorphicProjection;
         public LambdaExpression CustomCtorFunction;
         public MemberList ConfiguredMemberList;
         public List<LambdaExpression> AfterMapActions { get; private set; }
@@ -329,8 +363,45 @@ public sealed class TypeMap
                 {
                     ApplyInheritedTypeMap(inheritedTypeMap, thisMap);
                 }
+                if (MaxDepth == 0)
+                {
+                    InheritMaxDepth();
+                }
             }
             _features?.Seal(configuration);
+        }
+        // A map that sets no MaxDepth takes the one of the map it inherits from. When several of them have a MaxDepth,
+        // the most derived wins.
+        void InheritMaxDepth()
+        {
+            var nearest = NearestWithMaxDepth(InheritedTypeMaps, null);
+            if (nearest != null)
+            {
+                MaxDepth = nearest.MaxDepth;
+                MaxDepthInherited = true;
+            }
+        }
+        // An inherited map may not have its own inherited MaxDepth yet: a map whose sealing is in progress further up
+        // the stack is not sealed again, and which map that is depends on the order the maps were registered in.
+        // So an inherited map without a MaxDepth is looked through, to the maps it inherits from.
+        static TypeMap NearestWithMaxDepth(List<TypeMap> inheritedTypeMaps, TypeMap nearest)
+        {
+            foreach (var inheritedTypeMap in inheritedTypeMaps)
+            {
+                if (inheritedTypeMap.MaxDepth > 0)
+                {
+                    if (nearest == null ||
+                        (nearest.SourceType.IsAssignableFrom(inheritedTypeMap.SourceType) && nearest.DestinationType.IsAssignableFrom(inheritedTypeMap.DestinationType)))
+                    {
+                        nearest = inheritedTypeMap;
+                    }
+                }
+                else if (inheritedTypeMap._details?.InheritedTypeMaps is { } furtherUp)
+                {
+                    nearest = NearestWithMaxDepth(furtherUp, nearest);
+                }
+            }
+            return nearest;
         }
         public void IncludeDerivedTypes(TypePair derivedTypes)
         {

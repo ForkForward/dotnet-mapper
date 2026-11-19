@@ -151,6 +151,8 @@ public class MappingExpression<TSource, TDestination> : MappingExpressionBase<TS
         params Expression<Func<TSource, object>>[] memberExpressions) => (IProjectionExpression<TSource, TDestination>)IncludeMembers(memberExpressions);
     IProjectionExpression<TSource, TDestination> IProjectionExpressionBase<TSource, TDestination, IProjectionExpression<TSource, TDestination>>.MaxDepth(int depth) =>
         (IProjectionExpression<TSource, TDestination>)MaxDepth(depth);
+    IProjectionExpression<TSource, TDestination> IProjectionExpressionBase<TSource, TDestination, IProjectionExpression<TSource, TDestination>>.PolymorphicProjection(bool enabled) =>
+        (IProjectionExpression<TSource, TDestination>)PolymorphicProjection(enabled);
     IProjectionExpression<TSource, TDestination> IProjectionExpressionBase<TSource, TDestination, IProjectionExpression<TSource, TDestination>>.ValidateMemberList(
         MemberList memberList) => (IProjectionExpression<TSource, TDestination>)ValidateMemberList(memberList);
     IProjectionExpression<TSource, TDestination> IProjectionExpressionBase<TSource, TDestination, IProjectionExpression<TSource, TDestination>>.ConstructUsing(

@@ -22,7 +22,8 @@ using Microsoft.Extensions.Options;
 /// </summary>
 public static class ServiceCollectionExtensions
 {
-    static readonly Type[] AmTypes = [typeof(IValueResolver<,,>), typeof(IMemberValueResolver<,,,>), typeof(ITypeConverter<,>), typeof(IValueConverter<,>), typeof(IMappingAction<,>)];
+    static readonly Type[] AmTypes = [typeof(IValueResolver<,,>), typeof(IMemberValueResolver<,,,>), typeof(ITypeConverter<,>), typeof(IValueConverter<,>), typeof(IMappingAction<,>),
+        typeof(IDestinationFactory<,>), typeof(IMemberCondition<,,>), typeof(IMemberPreCondition<,>)];
     [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
     [RequiresDynamicCode(TrimmingAndAot.DynamicCode, Url = TrimmingAndAot.Url)]
     public static IServiceCollection AddAutoMapper(this IServiceCollection services, Action<IMapperConfigurationExpression> configAction)

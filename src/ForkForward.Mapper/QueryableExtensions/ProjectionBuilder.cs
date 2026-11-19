@@ -49,8 +49,21 @@ public sealed class ProjectionBuilder : IProjectionBuilder
         var typeMap = _configuration.ResolveTypeMap(request.SourceType, request.DestinationType) ?? throw TypeMap.MissingMapException(request.SourceType, request.DestinationType);
         return (typeMap, PolymorphicMaps(typeMap));
     }
-    TypeMap[] PolymorphicMaps(TypeMap typeMap) => _configuration.GetIncludedTypeMaps(typeMap.IncludedDerivedTypes
+    TypeMap[] PolymorphicMaps(TypeMap typeMap) => !IsPolymorphic(typeMap) ? [] : _configuration.GetIncludedTypeMaps(typeMap.IncludedDerivedTypes
         .Where(tp => tp.SourceType != typeMap.SourceType && !tp.DestinationType.IsAbstract).DistinctBy(tp => tp.SourceType).ToArray());
+    bool IsPolymorphic(TypeMap typeMap)
+    {
+        if(typeMap.PolymorphicProjection ?? _configuration.PolymorphicProjection)
+        {
+            return true;
+        }
+        if(typeMap.DestinationType.IsAbstract && typeMap.CustomMapExpression == null && typeMap.CustomCtorExpression == null)
+        {
+            throw new AutoMapperMappingException($"ProjectTo cannot create {typeMap.DestinationType}: it is abstract, and polymorphic projection is switched off for the map from {typeMap.SourceType}, " +
+                "so no derived type is created in its place. Switch it on for this map with PolymorphicProjection(true), or tell the map what to create with ConstructUsing or ConvertUsing.", null, typeMap);
+        }
+        return false;
+    }
     public QueryExpressions CreateProjection(in ProjectionRequest request, LetPropertyMaps letPropertyMaps)
     {
         var (typeMap, polymorphicMaps) = PolymorphicMaps(request);
@@ -58,9 +71,16 @@ public sealed class ProjectionBuilder : IProjectionBuilder
     }
     QueryExpressions CreateProjection(in ProjectionRequest request, LetPropertyMaps letPropertyMaps, TypeMap typeMap, TypeMap[] polymorphicMaps)
     {
-        var instanceParameter = Parameter(request.SourceType, "dto" + request.SourceType.Name);
-        var projection = CreateProjection(request, letPropertyMaps, typeMap, polymorphicMaps, instanceParameter);
-        return letPropertyMaps.Count > 0 ? letPropertyMaps.GetSubQueryExpression(this, projection, typeMap, request, instanceParameter) : new(projection, instanceParameter);
+        try
+        {
+            var instanceParameter = Parameter(request.SourceType, "dto" + request.SourceType.Name);
+            var projection = CreateProjection(request, letPropertyMaps, typeMap, polymorphicMaps, instanceParameter);
+            return letPropertyMaps.Count > 0 ? letPropertyMaps.GetSubQueryExpression(this, projection, typeMap, request, instanceParameter) : new(projection, instanceParameter);
+        }
+        catch(Exception exception) when(IsUnexpected(exception))
+        {
+            throw ProjectionError(exception, typeMap, null);
+        }
     }
     Expression CreateProjection(in ProjectionRequest request, LetPropertyMaps letPropertyMaps, TypeMap typeMap, TypeMap[] polymorphicMaps, Expression source)
     {
@@ -83,24 +103,32 @@ public sealed class ProjectionBuilder : IProjectionBuilder
             }
             List<MemberBinding> propertiesProjections = [];
             int depth;
-            if(OverMaxDepth())
+            try
             {
-                if(typeMap.Profile.AllowNullDestinationValues)
+                if(OverMaxDepth())
                 {
-                    return null;
+                    if(typeMap.Profile.AllowNullDestinationValues)
+                    {
+                        return null;
+                    }
                 }
+                else
+                {
+                    ProjectProperties();
+                }
+                var constructorExpression = CreateDestination();
+                var expression = MemberInit(constructorExpression, propertiesProjections);
+                return expression;
             }
-            else
+            catch(Exception exception) when(IsUnexpected(exception))
             {
-                ProjectProperties();
+                throw ProjectionError(exception, typeMap, null);
             }
-            var constructorExpression = CreateDestination();
-            var expression = MemberInit(constructorExpression, propertiesProjections);
-            return expression;
             bool OverMaxDepth()
             {
                 depth = letPropertyMaps.IncrementDepth(request);
-                return typeMap.MaxDepth > 0 && depth >= typeMap.MaxDepth;
+                var maxDepth = typeMap.ProjectionMaxDepth;
+                return maxDepth > 0 && depth >= maxDepth;
             }
             void ProjectProperties()
             {
@@ -113,7 +141,14 @@ public sealed class ProjectionBuilder : IProjectionBuilder
                     var propertyProjection = TryProjectMember(propertyMap);
                     if(propertyProjection != null)
                     {
-                        propertiesProjections.Add(Bind(propertyMap.DestinationMember, propertyProjection));
+                        try
+                        {
+                            propertiesProjections.Add(Bind(propertyMap.DestinationMember, propertyProjection));
+                        }
+                        catch(Exception exception) when(IsUnexpected(exception))
+                        {
+                            throw ProjectionError(exception, typeMap, propertyMap);
+                        }
                     }
                 }
             }
@@ -121,7 +156,15 @@ public sealed class ProjectionBuilder : IProjectionBuilder
             {
                 MemberProjection memberProjection = new(memberMap);
                 letPropertyMaps.Push(memberProjection);
-                var memberExpression = ShouldExpand() ? ProjectMemberCore() : null;
+                Expression memberExpression;
+                try
+                {
+                    memberExpression = ShouldExpand() ? ProjectMemberCore() : null;
+                }
+                catch(Exception exception) when(IsUnexpected(exception))
+                {
+                    throw ProjectionError(exception, typeMap, memberMap);
+                }
                 letPropertyMaps.Pop();
                 return memberExpression;
                 bool ShouldExpand() => memberMap.ExplicitExpansion != true || request.ShouldExpand(letPropertyMaps.GetCurrentPath());
@@ -217,6 +260,11 @@ public sealed class ProjectionBuilder : IProjectionBuilder
     static AutoMapperMappingException CannotMap(MemberMap memberMap, Type sourceType) => new(
         $"Unable to create a map expression from {memberMap.SourceMember?.DeclaringType?.Name}.{memberMap.SourceMember?.Name} ({sourceType}) to {memberMap.DestinationType.Name}.{memberMap.DestinationName} ({memberMap.DestinationType})",
         null, memberMap);
+    // What an exception that was not expected is wrapped in while a projection is built, as ExpressionBuilder.PlanBuildingError
+    // does for a mapping plan: the exception itself names neither the map nor the member. The member is null when
+    // the error belongs to the type map as a whole.
+    static AutoMapperMappingException ProjectionError(Exception innerException, TypeMap typeMap, MemberMap memberMap) =>
+        new("Error building the projection.", innerException, typeMap) { MemberMap = memberMap };
     [EditorBrowsable(EditorBrowsableState.Never)]
     sealed class FirstPassLetPropertyMaps(IGlobalConfiguration configuration, MemberPath parentPath, TypePairCount builtProjections) : LetPropertyMaps(configuration, parentPath, builtProjections)
     {

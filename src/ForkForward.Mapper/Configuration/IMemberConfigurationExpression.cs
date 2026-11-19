@@ -111,6 +111,12 @@ public interface IMemberConfigurationExpression<TSource, TDestination, TMember> 
     /// <param name="condition">Condition to evaluate using the source object</param>
     void Condition(Func<TSource, bool> condition);
     /// <summary>
+    /// Conditionally map this member using a condition class. An instance is created through the service constructor each time the condition is evaluated
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <typeparam name="TCondition">Condition type</typeparam>
+    void Condition<TCondition>() where TCondition : IMemberCondition<TSource, TDestination, TMember>;
+    /// <summary>
     /// Conditionally map this member, evaluated before accessing the source value
     /// </summary>
     /// <param name="condition">Condition to evaluate using the source object</param>
@@ -130,6 +136,12 @@ public interface IMemberConfigurationExpression<TSource, TDestination, TMember> 
     /// </summary>
     /// <param name="condition">Condition to evaluate using the source object, the destination object, and the current resolution context</param>
     void PreCondition(Func<TSource, TDestination, ResolutionContext, bool> condition);
+    /// <summary>
+    /// Conditionally map this member using a precondition class, evaluated before accessing the source value. An instance is created through the service constructor each time the precondition is evaluated
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <typeparam name="TPreCondition">Precondition type</typeparam>
+    void PreCondition<TPreCondition>() where TPreCondition : IMemberPreCondition<TSource, TDestination>;
     /// <summary>
     /// The destination member being configured.
     /// </summary>
@@ -224,6 +236,18 @@ public interface IMemberConfigurationExpression : IMemberConfigurationExpression
     /// <param name="valueResolver">Value resolver instance to use</param>
     /// <param name="sourceMemberName">Source member to supply to value resolver</param>
     void MapFrom<TSource, TDestination, TSourceMember, TDestMember>(IMemberValueResolver<TSource, TDestination, TSourceMember, TDestMember> valueResolver, string sourceMemberName);
+    /// <summary>
+    /// Conditionally map this member using a condition class. Used when the condition is not known at compile-time
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <param name="conditionType">Condition type, an implementation of <see cref="IMemberCondition{TSource, TDestination, TMember}"/></param>
+    void Condition(Type conditionType);
+    /// <summary>
+    /// Conditionally map this member using a precondition class, evaluated before accessing the source value. Used when the precondition is not known at compile-time
+    /// </summary>
+    /// <remarks>Not used for LINQ projection (ProjectTo)</remarks>
+    /// <param name="preConditionType">Precondition type, an implementation of <see cref="IMemberPreCondition{TSource, TDestination}"/></param>
+    void PreCondition(Type preConditionType);
     /// <summary>
     /// Specify a value converter type to convert from the matching source member to the destination member
     /// </summary>
@@ -344,4 +368,39 @@ public interface IMemberValueResolver<in TSource, in TDestination, in TSourceMem
     /// <param name="context">The context of the mapping</param>
     /// <returns>Result, typically build from the source resolution result</returns>
     TDestMember Resolve(TSource source, TDestination destination, TSourceMember sourceMember, TDestMember destMember, ResolutionContext context);
+}
+/// <summary>
+/// Decides, after the source value has been resolved, whether a destination member is assigned
+/// </summary>
+/// <typeparam name="TSource">Source type</typeparam>
+/// <typeparam name="TDestination">Destination type</typeparam>
+/// <typeparam name="TMember">Member type. With <see cref="object"/> or a base type the condition can be used for members of any type, and gets the source value as it was resolved</typeparam>
+public interface IMemberCondition<in TSource, in TDestination, in TMember>
+{
+    /// <summary>
+    /// Implementors decide whether the destination member is assigned.
+    /// </summary>
+    /// <param name="source">Source object</param>
+    /// <param name="destination">Destination object</param>
+    /// <param name="sourceMember">Source member value</param>
+    /// <param name="destinationMember">Destination member value before the assignment</param>
+    /// <param name="context">The context of the mapping</param>
+    /// <returns>True to assign the destination member, false to leave it as it is</returns>
+    bool ShouldMap(TSource source, TDestination destination, TMember sourceMember, TMember destinationMember, ResolutionContext context);
+}
+/// <summary>
+/// Decides, before the source value is read, whether a destination member is mapped at all
+/// </summary>
+/// <typeparam name="TSource">Source type</typeparam>
+/// <typeparam name="TDestination">Destination type</typeparam>
+public interface IMemberPreCondition<in TSource, in TDestination>
+{
+    /// <summary>
+    /// Implementors decide whether the destination member is mapped.
+    /// </summary>
+    /// <param name="source">Source object</param>
+    /// <param name="destination">Destination object</param>
+    /// <param name="context">The context of the mapping</param>
+    /// <returns>True to map the destination member, false to skip it without reading the source value</returns>
+    bool ShouldMap(TSource source, TDestination destination, ResolutionContext context);
 }

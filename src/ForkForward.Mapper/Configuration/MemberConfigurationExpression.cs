@@ -66,12 +66,24 @@ public class MemberConfigurationExpression<TSource, TDestination, TMember>(Membe
     public void Condition(Func<TSource, bool> condition) => ConditionCore((src, dest, srcMember, destMember, ctxt) => condition(src));
     private void ConditionCore(Expression<Func<TSource, TDestination, TMember, TMember, ResolutionContext, bool>> expr) =>
         PropertyMapActions.Add(pm => pm.Condition = expr);
+    public void Condition<TCondition>() where TCondition : IMemberCondition<TSource, TDestination, TMember> => ConditionCore(typeof(TCondition), nameof(TCondition));
+    private protected void ConditionCore(Type conditionType, string parameterName)
+    {
+        ClassCondition.Check(conditionType, typeof(IMemberCondition<,,>), parameterName);
+        PropertyMapActions.Add(pm => pm.Condition = ClassCondition.Create(pm.TypeMap, conditionType, typeof(IMemberCondition<,,>)));
+    }
     public void PreCondition(Func<TSource, bool> condition) => PreConditionCore((src, dest, ctxt) => condition(src));
     public void PreCondition(Func<ResolutionContext, bool> condition) => PreConditionCore((src, dest, ctxt) => condition(ctxt));
     public void PreCondition(Func<TSource, ResolutionContext, bool> condition) => PreConditionCore((src, dest, ctxt) => condition(src, ctxt));
     public void PreCondition(Func<TSource, TDestination, ResolutionContext, bool> condition) => PreConditionCore((src, dest, ctxt) => condition(src, dest, ctxt));
     private void PreConditionCore(Expression<Func<TSource, TDestination, ResolutionContext, bool>> expr) =>
         PropertyMapActions.Add(pm => pm.PreCondition = expr);
+    public void PreCondition<TPreCondition>() where TPreCondition : IMemberPreCondition<TSource, TDestination> => PreConditionCore(typeof(TPreCondition), nameof(TPreCondition));
+    private protected void PreConditionCore(Type preConditionType, string parameterName)
+    {
+        ClassCondition.Check(preConditionType, typeof(IMemberPreCondition<,>), parameterName);
+        PropertyMapActions.Add(pm => pm.PreCondition = ClassCondition.Create(pm.TypeMap, preConditionType, typeof(IMemberPreCondition<,>)));
+    }
     public void AddTransform(Expression<Func<TMember, TMember>> transformer) =>
         PropertyMapActions.Add(pm => pm.AddValueTransformation(new ValueTransformerConfiguration(pm.DestinationType, transformer)));
     public void ExplicitExpansion(bool value) => PropertyMapActions.Add(pm => pm.ExplicitExpansion = value);
@@ -165,10 +177,66 @@ public sealed class MemberConfigurationExpression(MemberInfo destinationMember, 
             MapFromCore(new(valueResolverType, valueResolverType.GetGenericInterface(typeof(IMemberValueResolver<,,,>)), sourceMemberName));
     public void MapFrom<TSource, TDestination, TSourceMember, TDestMember>(IMemberValueResolver<TSource, TDestination, TSourceMember, TDestMember> resolver, string sourceMemberName) =>
         MapFromCore(new(resolver, typeof(IMemberValueResolver<TSource, TDestination, TSourceMember, TDestMember>), sourceMemberName));
+    public void Condition(Type conditionType) => ConditionCore(conditionType, nameof(conditionType));
+    public void PreCondition(Type preConditionType) => PreConditionCore(preConditionType, nameof(preConditionType));
     public void ConvertUsing(Type valueConverterType) => ConvertUsingCore(valueConverterType);
     public void ConvertUsing(Type valueConverterType, string sourceMemberName) => ConvertUsingCore(valueConverterType, sourceMemberName);
     public void ConvertUsing<TSourceMember, TDestinationMember>(IValueConverter<TSourceMember, TDestinationMember> valueConverter, string sourceMemberName) =>
         base.ConvertUsingCore(new(valueConverter, typeof(IValueConverter<TSourceMember, TDestinationMember>), sourceMemberName));
     private void ConvertUsingCore(Type valueConverterType, string sourceMemberName = null) =>
         base.ConvertUsingCore(new(valueConverterType, valueConverterType.GetGenericInterface(typeof(IValueConverter<,>)), sourceMemberName));
+}
+// A condition or a precondition written as a class. MemberMap.Condition and MemberMap.PreCondition stay lambdas:
+// the one built here has the parameter types the class declares through the interface it implements, so the plan
+// converts the arguments to them, and a body that creates the instance through the service constructor and calls
+// ShouldMap. The parameter type of the source member is also how the plan knows which value the condition is given.
+static class ClassCondition
+{
+    public static void Check(Type conditionType, Type openInterface, string parameterName)
+    {
+        ArgumentNullException.ThrowIfNull(conditionType, parameterName);
+        GetInterface(conditionType, openInterface, parameterName);
+    }
+    public static LambdaExpression Create(TypeMap typeMap, Type conditionType, Type openInterface)
+    {
+        if (conditionType.IsGenericTypeDefinition)
+        {
+            // Closed like an open generic value resolver, with the type arguments of the closed map. The open map
+            // is configured too, and there is nothing to close the class with yet. It is never executed, but a map
+            // can inherit from it: that map gets a condition that says so, where no condition would map the member.
+            if (typeMap.Types.ContainsGenericParameters)
+            {
+                return Lambda(Throw(Constant(new AutoMapperConfigurationException(
+                    $"{conditionType} is an open generic type. It is closed with the type arguments of the map it is configured on, and a map that inherits from {typeMap.SourceType} -> {typeMap.DestinationType} does not inherit it. Configure it on that map too, or use a class that is not generic.")),
+                    typeof(bool)));
+            }
+            conditionType = typeMap.MakeGenericType(conditionType);
+        }
+        var interfaceType = GetInterface(conditionType, openInterface, nameof(conditionType));
+        var shouldMap = interfaceType.GetMethod("ShouldMap");
+        var parameters = Array.ConvertAll(shouldMap.GetParameters(), parameter => Parameter(parameter.ParameterType, parameter.Name));
+        parameters[^1] = ContextParameter;
+        return Lambda(Call(ToType(ServiceLocator(conditionType), interfaceType), shouldMap, parameters), parameters);
+    }
+    // A class that implements the interface more than once is refused: the interface is contravariant, so more than
+    // one implementation can accept the same member, and nothing here could say which one was meant.
+    static Type GetInterface(Type conditionType, Type openInterface, string parameterName)
+    {
+        var interfaceType = conditionType.IsGenericType(openInterface) ? conditionType : null;
+        foreach (var implemented in conditionType.GetInterfaces())
+        {
+            if (!implemented.IsGenericType(openInterface))
+            {
+                continue;
+            }
+            if (interfaceType != null)
+            {
+                throw new ArgumentException($"{conditionType} implements {Name(openInterface)} more than once. Implement it once, or write one class for each set of type arguments.", parameterName);
+            }
+            interfaceType = implemented;
+        }
+        return interfaceType ?? throw new ArgumentException($"{conditionType} does not implement {Name(openInterface)}.", parameterName);
+    }
+    static string Name(Type openInterface) =>
+        $"{openInterface.Name[..openInterface.Name.IndexOf('`')]}<{string.Join(", ", openInterface.GetGenericArguments().Select(argument => argument.Name))}>";
 }
