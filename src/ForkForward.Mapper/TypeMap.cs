@@ -103,7 +103,10 @@ public sealed class TypeMap
     public IReadOnlyCollection<LambdaExpression> BeforeMapActions => (_details?.BeforeMapActions).NullCheck();
     public IReadOnlyCollection<LambdaExpression> AfterMapActions => (_details?.AfterMapActions).NullCheck();
     public IReadOnlyCollection<ValueTransformerConfiguration> ValueTransformers => (_details?.ValueTransformerConfigs).NullCheck();
-    public bool PreserveReferences { get => (_details?.PreserveReferences).GetValueOrDefault(); set => Details.PreserveReferences = value; }
+    // The destination objects are cached by the source object, by reference. A value type has no reference to find it by
+    // (boxed, every use is another object), and a destination that is a value type is copied wherever it is used, so
+    // there is nothing to preserve: such a map does not use the cache and is mapped as without PreserveReferences.
+    public bool PreserveReferences { get => (_details?.PreserveReferences).GetValueOrDefault(); set => Details.PreserveReferences = value && !SourceType.IsValueType && !DestinationType.IsValueType; }
     public int MaxDepth { get => (_details?.MaxDepth).GetValueOrDefault(); set => Details.MaxDepth = value; }
     // In a projection MaxDepth is not a depth: it counts how many times the map has been used in the query. A derived
     // map does not inherit it there; it would leave members empty in projections that are complete today.

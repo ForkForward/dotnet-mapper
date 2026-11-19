@@ -33,6 +33,8 @@ Most applications can use dependency injection to inject the created `IMapper` i
 
 AutoMapper also has non-generic versions of these methods, for those cases where you might not know the type at compile time.
 
+The lambdas of a map created with `CreateMap(typeof(Source), typeof(Destination))` take `object`. A source or a destination that is a value type is boxed for them, so `BeforeMap` and `AfterMap` get a copy of a struct destination and cannot change it, the same as in the generic API.
+
 ## Where do I configure AutoMapper?
 
 Configuration should only happen once per AppDomain.  That means the best place to put the configuration code is in application startup, such as the Global.asax file for ASP.NET applications.  Typically, the configuration bootstrapper class is in its own class, and this bootstrapper class is called from the startup method. The bootstrapper class should construct a `MapperConfiguration` object to configure the type maps.

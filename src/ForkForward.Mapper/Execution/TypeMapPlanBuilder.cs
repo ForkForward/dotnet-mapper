@@ -158,7 +158,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     private Expression CreateDestinationFunc()
     {
         var newDestFunc = CreateNewDestinationFunc();
-        var getDest = DestinationType.IsValueType ? newDestFunc : Coalesce(_initialDestination, ToType(newDestFunc, DestinationType));
+        var getDest = DestinationType.IsValueType ? ToType(newDestFunc, DestinationType) : Coalesce(_initialDestination, ToType(newDestFunc, DestinationType));
         var destinationFunc = Assign(_destination, getDest);
         return _typeMap.PreserveReferences ?
             Block(destinationFunc, Call(ContextParameter, CacheDestinationMethod, _source, Constant(DestinationType), _destination), _destination) :
@@ -539,7 +539,18 @@ public class ValueConverter : ValueResolverConfig, IValueResolver
             _ when memberMap.SourceMembers.Length > 0 => memberMap.ChainSourceMembers(configuration, source, destinationMember),
             _ => Throw(Constant(BuildExceptionMessage()), sourceMemberType)
         };
+        if (sourceMember.Type != sourceMemberType && sourceMemberType.IsValueType && !sourceMemberType.IsNullableType() && IsNullCheckedToNullable())
+        {
+            var checkedMember = Variable(sourceMember.Type, "sourceMember");
+            var convert = Call(ToType(_instance, InterfaceType), InterfaceType.GetMethod("Convert"), ToType(ExpressionBuilder.Property(checkedMember, "Value"), sourceMemberType), ContextParameter);
+            return Block([checkedMember], Assign(checkedMember, sourceMember), checkedMember.IfNullElse(configuration.Default(convert.Type), convert));
+        }
         return Call(ToType(_instance, InterfaceType), InterfaceType.GetMethod("Convert"), ToType(sourceMember, sourceMemberType), ContextParameter);
+        // The source members matched by name are null checked for the destination member: when they end in a T and the member
+        // is a T?, NullCheck gives them the type T?, so that a null on the way is a null. A converter that takes a value type
+        // cannot be given that null and is not called for it: the result is the default of what the converter returns.
+        bool IsNullCheckedToNullable() => SourceMemberLambda == null && SourceMemberName == null && memberMap.SourceMembers.Length > 0 &&
+            Nullable.GetUnderlyingType(sourceMember.Type) == memberMap.SourceMembers[^1].GetMemberType();
         AutoMapperConfigurationException BuildExceptionMessage()
             => new($"Cannot find a source member to pass to the value converter of type {ConcreteType}. Configure a source member to map from.");
     }
@@ -605,7 +616,12 @@ public class ClassTypeConverter(Type converterType, Type converterInterface) : T
     public Type ConverterType { get; private set; } = converterType;
     public Type ConverterInterface { get; } = converterInterface;
     public override Expression GetExpression(IGlobalConfiguration configuration, ParameterExpression[] parameters) =>
-        Call(ToType(ServiceLocator(ConverterType), ConverterInterface), "Convert", parameters);
+        Call(ToType(ServiceLocator(ConverterType), ConverterInterface), "Convert", Arguments(parameters));
+    // ConvertUsing<TTypeConverter>() of the non-generic API calls the converter through ITypeConverter<object, object>:
+    // a source or a destination that is a value type is boxed for it. Every other converter takes the types of the map.
+    Expression[] Arguments(ParameterExpression[] parameters) =>
+        ConverterInterface == typeof(ITypeConverter<object, object>) && (parameters[0].Type.IsValueType || parameters[1].Type.IsValueType) ?
+            [parameters[0].ToObject(), parameters[1].ToObject(), parameters[2]] : parameters;
     public override void CloseGenerics(TypeMapConfiguration openMapConfig, TypePair closedTypes)
     {
         var typeParams = (openMapConfig.SourceType.IsGenericTypeDefinition ? closedTypes.SourceType.GenericTypeArguments : [])
