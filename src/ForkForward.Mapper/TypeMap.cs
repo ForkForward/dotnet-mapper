@@ -93,6 +93,9 @@ public sealed class TypeMap
     public IReadOnlyCollection<ValueTransformerConfiguration> ValueTransformers => (_details?.ValueTransformerConfigs).NullCheck();
     public bool PreserveReferences { get => (_details?.PreserveReferences).GetValueOrDefault(); set => Details.PreserveReferences = value; }
     public int MaxDepth { get => (_details?.MaxDepth).GetValueOrDefault(); set => Details.MaxDepth = value; }
+    // In a projection MaxDepth is not a depth: it counts how many times the map has been used in the query. A derived
+    // map does not inherit it there; it would leave members empty in projections that are complete today.
+    internal int ProjectionMaxDepth => _details is { MaxDepthInherited: false } ? _details.MaxDepth : 0;
     public bool DisableConstructorValidation { get => (_details?.DisableConstructorValidation).GetValueOrDefault(); set => Details.DisableConstructorValidation = value; }
     public IReadOnlyCollection<PropertyMap> PropertyMaps => _propertyMaps.NullCheck();
     public IReadOnlyCollection<PathMap> PathMaps => (_details?.PathMaps).NullCheck();
@@ -304,6 +307,7 @@ public sealed class TypeMap
         public string[] IncludedMembersNames;
         public bool DisableConstructorValidation;
         public int MaxDepth;
+        public bool MaxDepthInherited;
         public bool IncludeAllDerivedTypes;
         public LambdaExpression CustomCtorFunction;
         public MemberList ConfiguredMemberList;
@@ -346,8 +350,31 @@ public sealed class TypeMap
                 {
                     ApplyInheritedTypeMap(inheritedTypeMap, thisMap);
                 }
+                if (MaxDepth == 0)
+                {
+                    InheritMaxDepth();
+                }
             }
             _features?.Seal(configuration);
+        }
+        // A map that sets no MaxDepth takes the one of the map it inherits from. The inherited maps are sealed by now,
+        // so each of them already has what it inherits itself. When several of them have a MaxDepth, the most derived wins.
+        void InheritMaxDepth()
+        {
+            TypeMap nearest = null;
+            foreach (var inheritedTypeMap in InheritedTypeMaps)
+            {
+                if (inheritedTypeMap.MaxDepth > 0 && (nearest == null ||
+                    (nearest.SourceType.IsAssignableFrom(inheritedTypeMap.SourceType) && nearest.DestinationType.IsAssignableFrom(inheritedTypeMap.DestinationType))))
+                {
+                    nearest = inheritedTypeMap;
+                }
+            }
+            if (nearest != null)
+            {
+                MaxDepth = nearest.MaxDepth;
+                MaxDepthInherited = true;
+            }
         }
         public void IncludeDerivedTypes(TypePair derivedTypes)
         {

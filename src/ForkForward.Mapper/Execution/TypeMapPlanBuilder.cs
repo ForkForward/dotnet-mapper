@@ -173,7 +173,9 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         if (hasMaxDepth)
         {
             typeMapExpression = Constant(_typeMap);
-            actions.Add(Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
+            // Counted before the destination is created, not after: creating it can already map the next level,
+            // through a constructor parameter or through ConstructUsing with the context.
+            actions.Insert(0, Call(ContextParameter, IncTypeDepthInfo, typeMapExpression));
         }
         AddBeforeMap(actions);
         AddPropertyMaps(actions);

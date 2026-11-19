@@ -114,7 +114,8 @@ public sealed class ProjectionBuilder : IProjectionBuilder
             bool OverMaxDepth()
             {
                 depth = letPropertyMaps.IncrementDepth(request);
-                return typeMap.MaxDepth > 0 && depth >= typeMap.MaxDepth;
+                var maxDepth = typeMap.ProjectionMaxDepth;
+                return maxDepth > 0 && depth >= maxDepth;
             }
             void ProjectProperties()
             {
