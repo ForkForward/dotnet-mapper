@@ -43,6 +43,7 @@ The previews `14.1.0-preview.2` and `14.1.0-preview.3` were published with the `
 7. [x] `CHANGELOG.md`, linked from the package as release notes.
 
 - [x] `14.1.0` released on 2026-11-10: tag `v14.1.0`, [package on nuget.org](https://www.nuget.org/packages/ForkForward.Mapper/14.1.0), [GitHub release](https://github.com/ForkForward/dotnet-mapper/releases/tag/v14.1.0) created by the workflow; the benchmark baseline is now `14.1.0`.
+- [x] `15.0.0` released on 2026-11-19: tag `v15.0.0`, [package on nuget.org](https://www.nuget.org/packages/ForkForward.Mapper/15.0.0), [GitHub release](https://github.com/ForkForward/dotnet-mapper/releases/tag/v15.0.0) created by the workflow. The packages carry a build provenance attestation (`gh attestation verify <file> -R ForkForward/dotnet-mapper`); no author signature yet, as no certificate is configured. The benchmark baseline is now `15.0.0`.
 
 Release steps for the next version: merge what goes in; push the tag `v<version>`; the release workflow builds, runs the benchmark against the baseline, publishes to nuget.org and creates the GitHub release; then raise `BaselineVersion` in `src/Benchmark.Baseline/Benchmark.Baseline.csproj` (and `BaselineNamespace`, should the namespace ever change again).
 
