@@ -363,7 +363,8 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         if (memberMap.Condition != null)
         {
             _expressions.Add(IfThen(
-                _configuration.ConvertReplaceParameters(memberMap.Condition, [customSource, _destination, mappedMemberVariable, destinationMemberGetter, ContextParameter]),
+                _configuration.ConvertReplaceParameters(memberMap.Condition,
+                    [customSource, _destination, ConditionSourceMember(memberMap, resolvedValueVariable, mappedMemberVariable), destinationMemberGetter, ContextParameter]),
                 mapperExpr));
         }
         else if (!destinationMemberReadOnly)
@@ -375,6 +376,23 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             Precondition(memberMap, customSource);
         }
         return Block(_variables, _expressions);
+    }
+    // What a condition is given as the source member. A condition that declares it with the type of the destination
+    // member gets the value that is about to be assigned, as in AutoMapper 14. A condition that declares it with
+    // another type, which the resolved source value can be passed as without a conversion (object in ForAllMembers
+    // and in the non-generic API), gets the resolved source value: once mapped to the type of the destination member,
+    // a null that goes into a value type is that type's default value, and a condition that skips nulls never saw one.
+    static ParameterExpression ConditionSourceMember(MemberMap memberMap, ParameterExpression resolvedValue, ParameterExpression mappedValue)
+    {
+        var parameters = memberMap.Condition.Parameters;
+        if (parameters.Count < 3)
+        {
+            return mappedValue;
+        }
+        var declaredType = parameters[2].Type;
+        var resolvedType = resolvedValue.Type;
+        return declaredType != memberMap.DestinationType && (declaredType.IsValueType ? declaredType == resolvedType : declaredType.IsAssignableFrom(resolvedType)) ?
+            resolvedValue : mappedValue;
     }
     Expression DestinationMemberValue(MemberMap memberMap, Expression destinationMemberGetter, bool destinationMemberReadOnly)
     {

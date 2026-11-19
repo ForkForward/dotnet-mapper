@@ -58,6 +58,8 @@ var mapper = new Mapper(configuration, childContainer.GetInstance);
 var dest = mapper.Map<Source, Destination>(new Source { Value = 15 });
 ```
 
+[Conditions and preconditions written as classes](Conditional-mapping.md#conditions-as-classes) are created the same way, each time they are evaluated. `AddAutoMapper` registers the ones it finds in the scanned assemblies as transient, so `opt.Condition<InStock>()` works with a class such as `public class InStock(IWarehouse warehouse) : IMemberCondition<Order, OrderDto, int>`, and a mapper resolved from a scope gives it scoped services. Without a container the class needs a parameterless constructor. `ProjectTo` ignores conditions.
+
 ## Queryable Extensions
 
 Starting with 8.0 you can use `IMapper.ProjectTo`. For older versions you need to pass the configuration to the extension method ``` IQueryable.ProjectTo<T>(IConfigurationProvider) ```.
