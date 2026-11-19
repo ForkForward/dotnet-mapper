@@ -47,6 +47,7 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     private readonly MapperConfigurationExpression _configurationExpression;
     private readonly Features<IRuntimeFeature> _features = new();
     private readonly bool _hasOpenMaps;
+    private readonly bool _polymorphicProjection;
     private readonly HashSet<TypeMap> _typeMapsPath = [];
     private readonly List<MemberInfo> _sourceMembers = [];
     private readonly List<ParameterExpression> _variables = [];
@@ -68,6 +69,7 @@ public sealed class MapperConfiguration : IGlobalConfiguration
             configuration.IncludeSourceExtensionMethods(typeof(Enumerable));
         }
         _mappers = [..configuration.Mappers];
+        _polymorphicProjection = configuration.PolymorphicProjection;
         _executionPlans = new(CompileExecutionPlan);
         _projectionBuilder = new(CreateProjectionBuilder);
         Configuration = new((IProfileConfiguration)configuration);
@@ -251,6 +253,8 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     ProfileMap[] IGlobalConfiguration.Profiles => Profiles;
     internal ProfileMap[] Profiles { get; }
     int IGlobalConfiguration.RecursiveQueriesMaxDepth => ConfigurationExpression.RecursiveQueriesMaxDepth;
+    // Copied when the configuration is built, not read from the expression: projections are cached, and the key does not include it.
+    bool IGlobalConfiguration.PolymorphicProjection => _polymorphicProjection;
     Features<IRuntimeFeature> IGlobalConfiguration.Features => _features;
     List<MemberInfo> IGlobalConfiguration.SourceMembers => _sourceMembers;
     List<ParameterExpression> IGlobalConfiguration.Variables => _variables;

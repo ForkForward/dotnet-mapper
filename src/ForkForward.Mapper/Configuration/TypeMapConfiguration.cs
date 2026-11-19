@@ -298,6 +298,11 @@ public abstract class MappingExpressionBase<TSource, TDestination, TMappingExpre
         TypeMapActions.Add(tm => tm.IncludeAllDerivedTypes = true);
         return this as TMappingExpression;
     }
+    public TMappingExpression PolymorphicProjection(bool enabled)
+    {
+        TypeMapActions.Add(tm => tm.PolymorphicProjection = enabled);
+        return this as TMappingExpression;
+    }
     public TMappingExpression Include(Type otherSourceType, Type otherDestinationType)
     {
         IncludeCore(otherSourceType, otherDestinationType);

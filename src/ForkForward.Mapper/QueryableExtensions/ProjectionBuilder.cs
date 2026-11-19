@@ -49,8 +49,21 @@ public sealed class ProjectionBuilder : IProjectionBuilder
         var typeMap = _configuration.ResolveTypeMap(request.SourceType, request.DestinationType) ?? throw TypeMap.MissingMapException(request.SourceType, request.DestinationType);
         return (typeMap, PolymorphicMaps(typeMap));
     }
-    TypeMap[] PolymorphicMaps(TypeMap typeMap) => _configuration.GetIncludedTypeMaps(typeMap.IncludedDerivedTypes
+    TypeMap[] PolymorphicMaps(TypeMap typeMap) => !IsPolymorphic(typeMap) ? [] : _configuration.GetIncludedTypeMaps(typeMap.IncludedDerivedTypes
         .Where(tp => tp.SourceType != typeMap.SourceType && !tp.DestinationType.IsAbstract).DistinctBy(tp => tp.SourceType).ToArray());
+    bool IsPolymorphic(TypeMap typeMap)
+    {
+        if(typeMap.PolymorphicProjection ?? _configuration.PolymorphicProjection)
+        {
+            return true;
+        }
+        if(typeMap.DestinationType.IsAbstract && typeMap.CustomMapExpression == null && typeMap.CustomCtorExpression == null)
+        {
+            throw new AutoMapperMappingException($"ProjectTo cannot create {typeMap.DestinationType}: it is abstract, and polymorphic projection is switched off for the map from {typeMap.SourceType}, " +
+                "so no derived type is created in its place. Switch it on for this map with PolymorphicProjection(true), or tell the map what to create with ConstructUsing or ConvertUsing.", null, typeMap);
+        }
+        return false;
+    }
     public QueryExpressions CreateProjection(in ProjectionRequest request, LetPropertyMaps letPropertyMaps)
     {
         var (typeMap, polymorphicMaps) = PolymorphicMaps(request);

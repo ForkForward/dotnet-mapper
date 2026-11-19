@@ -43,6 +43,12 @@ public interface IGlobalConfigurationExpression : IMapperConfigurationExpression
     /// Must be zero for EF6. Can be greater than zero for EF Core.
     /// </summary>
     int RecursiveQueriesMaxDepth { get; set; }
+    /// <summary>
+    /// Whether ProjectTo tests the runtime type of each source object and creates the destination type of the matching derived map
+    /// (Include, IncludeBase, IncludeAllDerived). Default true. When false, a map is projected on its own, without its derived maps.
+    /// A map can decide for itself with PolymorphicProjection. Not used by Map.
+    /// </summary>
+    bool PolymorphicProjection { get; set; }
 }
 [EditorBrowsable(EditorBrowsableState.Never)]
 public interface IGlobalConfiguration : IConfigurationProvider
@@ -139,6 +145,10 @@ public interface IGlobalConfiguration : IConfigurationProvider
     Func<Type, object> ServiceCtor { get; }
     int MaxExecutionPlanDepth { get; }
     int RecursiveQueriesMaxDepth { get; }
+    /// <summary>
+    /// Whether ProjectTo uses the derived maps of a map that has no setting of its own. The value the configuration was built with.
+    /// </summary>
+    bool PolymorphicProjection { get; }
     ProfileMap[] Profiles { get; }
     TypeMap GetIncludedTypeMap(TypePair typePair);
     TypeMap GetIncludedTypeMap(Type sourceType, Type destinationType);

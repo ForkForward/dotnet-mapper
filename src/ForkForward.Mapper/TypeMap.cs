@@ -74,6 +74,10 @@ public sealed class TypeMap
     public LambdaExpression CustomCtorFunction { get => _details?.CustomCtorFunction; set => Details.CustomCtorFunction = value; }
     public LambdaExpression CustomCtorExpression => CustomCtorFunction is { Parameters: [_] } ? CustomCtorFunction : null;
     public bool IncludeAllDerivedTypes { get => (_details?.IncludeAllDerivedTypes).GetValueOrDefault(); set => Details.IncludeAllDerivedTypes = value; }
+    /// <summary>
+    /// Whether ProjectTo uses the derived maps of this map. Null when the map has no setting of its own and follows the configuration.
+    /// </summary>
+    public bool? PolymorphicProjection { get => _details?.PolymorphicProjection; set => Details.PolymorphicProjection = value; }
     public MemberList ConfiguredMemberList
     {
         get => (_details?.ConfiguredMemberList).GetValueOrDefault();
@@ -309,6 +313,7 @@ public sealed class TypeMap
         public int MaxDepth;
         public bool MaxDepthInherited;
         public bool IncludeAllDerivedTypes;
+        public bool? PolymorphicProjection;
         public LambdaExpression CustomCtorFunction;
         public MemberList ConfiguredMemberList;
         public List<LambdaExpression> AfterMapActions { get; private set; }

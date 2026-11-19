@@ -19,6 +19,16 @@ public interface IProjectionExpressionBase<TSource, TDestination, out TMappingEx
     /// <returns>Itself</returns>
     TMappingExpression MaxDepth(int depth);
     /// <summary>
+    /// Switch polymorphic projection on or off for this map. When on, ProjectTo tests the runtime type of each source object
+    /// and creates the destination type of the matching derived map (Include, IncludeBase, IncludeAllDerived).
+    /// When off, ProjectTo uses this map alone: no type test, no cast, and every result is this map's destination type.
+    /// Overrides the setting of the configuration for this map. Derived maps do not inherit it.
+    /// </summary>
+    /// <remarks>Used for LINQ projection (ProjectTo) only. Map is not affected.</remarks>
+    /// <param name="enabled">False to project with this map alone, true to use its derived maps</param>
+    /// <returns>Itself</returns>
+    TMappingExpression PolymorphicProjection(bool enabled);
+    /// <summary>
     /// Value transformers, typically configured through explicit or extension methods.
     /// </summary>
     List<ValueTransformerConfiguration> ValueTransformers { get; }
