@@ -80,10 +80,11 @@ public sealed class ResolutionContext : IInternalRuntimeMapper
     internal void DecrementTypeDepth(TypeMap typeMap) => TypeDepth[typeMap.Types]--;
     internal bool OverTypeDepth(TypeMap typeMap)
     {
-        // The plan of a member that is mapped through the context is cached by its types alone, so the plan built
-        // for a collection member of a map with MaxDepth, which asks this, also runs for members of maps that have
-        // no MaxDepth and keep the default context. Depth is only ever counted in a context of its own: with the
-        // default one no map with MaxDepth is being mapped, and nothing can be over its depth.
+        // Depth is only ever counted in a context of its own: with the default one no map with MaxDepth is being
+        // mapped, and nothing can be over its depth. The plan of a collection member of a map with MaxDepth asks
+        // this. While plans were cached by their types alone, that plan also ran for members of maps that have no
+        // MaxDepth and keep the default context. The cache keeps it per member now (see MapRequest), so this is a
+        // safeguard: the default context is shared by all the Map calls of a mapper and must not be written to.
         if (IsDefault)
         {
             return false;

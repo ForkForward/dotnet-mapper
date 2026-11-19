@@ -153,6 +153,10 @@ public sealed class MapperConfiguration : IGlobalConfiguration
         Delegate CompileExecutionPlan(MapRequest mapRequest)
         {
             var executionPlan = ((IGlobalConfiguration)this).BuildExecutionPlan(mapRequest);
+            if (GetTypeMapExecutionPlan(mapRequest) is { } typeMapExecutionPlan)
+            {
+                return typeMapExecutionPlan;
+            }
             try
             {
                 return executionPlan.Compile(); // breakpoint here to inspect all execution plans
@@ -180,6 +184,14 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     public void CompileMappings()
     {
         foreach (var request in _resolvedMaps.Keys.Where(t => !t.ContainsGenericParameters).Select(types => new MapRequest(types)).ToArray())
+        {
+            GetExecutionPlan(request);
+        }
+        // A member that is not inlined into the plan of its map is mapped by a plan that is cached for that member
+        // (see MapRequest), not by the one compiled above for its types.
+        foreach (var request in _configuredMaps.Values.Where(typeMap => !typeMap.Projection && !typeMap.Types.ContainsGenericParameters)
+            .SelectMany(typeMap => typeMap.MemberMaps).Where(memberMap => memberMap.CanResolveValue && !memberMap.Inline)
+            .Select(memberMap => new MapRequest(memberMap.Types(), memberMap.Types(), memberMap)).ToArray())
         {
             GetExecutionPlan(request);
         }
@@ -283,6 +295,25 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     Func<TSource, TDestination, ResolutionContext, TDestination> IGlobalConfiguration.GetExecutionPlan<TSource, TDestination>(in MapRequest mapRequest)
         => (Func<TSource, TDestination, ResolutionContext, TDestination>)GetExecutionPlan(mapRequest);
     private Delegate GetExecutionPlan(in MapRequest mapRequest) => _executionPlans.GetOrAdd(mapRequest);
+    // The plans are cached per member (see MapRequest), because a built-in mapper builds its plan for the member.
+    // The plan of a type map is the same whichever member it is mapped for: it is compiled once, for the request
+    // without a member, and the requests of the members get that delegate. Null when the request is not such a one.
+    private Delegate GetTypeMapExecutionPlan(in MapRequest mapRequest)
+    {
+        if (!mapRequest.HasMember || (ResolveTypeMap(mapRequest.RuntimeTypes) ?? ResolveTypeMap(mapRequest.RequestedTypes)) == null)
+        {
+            return null;
+        }
+        try
+        {
+            return GetExecutionPlan(new(mapRequest.RequestedTypes, mapRequest.RuntimeTypes, null));
+        }
+        // The plan cannot be compiled. The request gets the error of its own plan, which names the member.
+        catch (AutoMapperMappingException)
+        {
+            return null;
+        }
+    }
     TypeMap IGlobalConfiguration.ResolveAssociatedTypeMap(TypePair types)
     {
         var typeMap = ResolveTypeMap(types);
