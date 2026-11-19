@@ -26,7 +26,7 @@ By opening a pull request you confirm that you have the right to submit the chan
 
 ## Building
 
-The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET 10 SDK. The solution file is `ForkForward.Mapper.slnx`. The library targets `net8.0`; the tests, the benchmark and the sample app target `net10.0`.
+The project builds and is tested on Windows and on Linux; CI runs both. You need the .NET 11 SDK, and the .NET 10 runtime next to it (the .NET 10 SDK brings it). The solution file is `ForkForward.Mapper.slnx`. The library targets `net10.0` and `net11.0`, and so do the unit tests and the dependency injection tests, so that both builds of the library are tested; the integration tests, the benchmark and the sample app target `net10.0`.
 
 ```powershell
 ./Build.ps1
@@ -65,8 +65,8 @@ CI runs these tests two more ways, and both can be run locally:
 ```powershell
 # Dynamic code switched off: mapping plans are interpreted instead of compiled, as on a runtime that cannot generate code.
 dotnet test src/UnitTests -p:DynamicCodeSupport=false
-# On the newest .NET runtime installed, instead of the .NET 10 the tests target.
-dotnet test src/UnitTests -p:RollForward=LatestMajor
+# One target framework only, here the .NET 11 build of the library on the .NET 11 runtime.
+dotnet test src/UnitTests --framework net11.0
 ```
 
 A test that cannot pass with interpreted plans is marked `[NeedsDynamicCodeFact]` (it generates a type at run time) or `[CompiledPlansFact(reason)]` (a known difference) instead of `[Fact]`, and is skipped in that run; see `src/UnitTests/InterpretedPlans.cs`. A new difference goes into [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md) too.

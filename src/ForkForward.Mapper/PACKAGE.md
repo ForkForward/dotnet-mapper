@@ -26,6 +26,10 @@ That is all: the types and their members are those of AutoMapper 14.0.0, and so 
 - From the release that follows 14.1.1: conditions, preconditions and destination factories as classes that take services from the container, a switch for polymorphic projection, plan errors that name the map and the member, and fixes for bugs inherited from AutoMapper 14. Four of the fixes change behaviour; they are listed in [Moving from AutoMapper 14](https://forkforward.dev/dotnet-mapper/Moving-from-AutoMapper-14/#what-behaves-differently-from-automapper-14).
 - Builds and tests on current .NET SDKs, on Windows and Linux; every change is measured against the previous release and must not be slower or allocate more.
 
+## .NET versions
+
+From the release that follows 14.1.1 the package targets .NET 10 and .NET 11. `14.1.1` is the last release for .NET 8 and .NET 9.
+
 ## Native AOT and trimming
 
 Not supported. A project that is published trimmed or with Native AOT gets the warnings `IL2026` and `IL3050` where it creates a mapper configuration. Details: https://forkforward.dev/dotnet-mapper/Native-AOT-and-trimming/
