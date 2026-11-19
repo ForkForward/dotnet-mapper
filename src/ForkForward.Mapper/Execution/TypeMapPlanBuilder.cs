@@ -417,8 +417,13 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         var profile = _typeMap.Profile;
         var mapMember = memberMap.Inline ?
             _configuration.MapExpression(profile, typePair, resolvedValue, memberMap, destinationMemberValue) :
-            _configuration.NullCheckSource(profile, resolvedValue, destinationMemberValue, ContextMap(typePair, resolvedValue, destinationMemberValue, memberMap), memberMap);
+            _configuration.NullCheckSource(profile, resolvedValue, destinationMemberValue, ContextMap(typePair, SourceValue(typePair.SourceType, resolvedValue), destinationMemberValue, memberMap), memberMap);
         return memberMap.ApplyTransformers(mapMember, _configuration);
+        // NullCheck gives a chain of members and calls that ends in a T the type T? when the destination member is a T?,
+        // so that a null on the way maps to null and not to default(T). The member map still maps from T, and the call
+        // through the context is made for T: it gets the value, behind the null check that NullCheckSource puts in front.
+        static Expression SourceValue(Type sourceType, ParameterExpression resolvedValue) =>
+            resolvedValue.Type != sourceType && Nullable.GetUnderlyingType(resolvedValue.Type) == sourceType ? ExpressionBuilder.Property(resolvedValue, "Value") : resolvedValue;
     }
     private Expression BuildValueResolverFunc(MemberMap memberMap, Expression customSource, Expression destValueExpr)
     {
