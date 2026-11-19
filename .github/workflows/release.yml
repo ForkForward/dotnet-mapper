@@ -10,6 +10,10 @@ name: Release
 #
 # After the push the job creates the GitHub release for the tag, with the matching section of
 # CHANGELOG.md as its notes and the packages attached.
+#
+# Every package gets a build provenance attestation: a signed statement that it was built by this
+# workflow from this tag. When a code-signing certificate is configured, the packages also get an
+# author signature before they are published. See docs/security/package-signing.md.
 on:
   push:
     tags:
@@ -30,8 +34,11 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v6
       with:
-        # The .NET 10 SDK builds everything, and the tests run on the .NET 10 runtime it brings.
-        dotnet-version: 10.0.x
+        # The library targets net10.0 and net11.0. The .NET 11 SDK builds both; the .NET 10 SDK is
+        # installed for its runtime, which everything that targets net10.0 runs on.
+        dotnet-version: |
+          10.0.x
+          11.0.x
     - name: Install SQL Server LocalDB
       run: ./Setup.ps1
       shell: pwsh
@@ -52,15 +59,99 @@ jobs:
   benchmark:
     uses: ./.github/workflows/benchmark.yml
 
+  # The author signature. The job runs only when a code-signing certificate is configured: the repository
+  # variable SIGNING_PROVIDER says where it is, and docs/security/package-signing.md lists what belongs to
+  # each provider. Without it the packages are published as they were built; they still get the build
+  # provenance attestation below and, as every package on nuget.org, nuget.org's own repository signature.
+  sign:
+    needs: build
+    if: vars.SIGNING_PROVIDER != ''
+    # The Sign CLI, which Sign.ps1 uses, runs on Windows only.
+    runs-on: windows-latest
+    # The certificate is reachable from this environment only, like the right to publish.
+    environment: release
+    permissions:
+      id-token: write  # signs in to Azure without a stored secret, for a certificate in Azure Key Vault
+      contents: read
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v7
+      with:
+        sparse-checkout: Sign.ps1
+        sparse-checkout-cone-mode: false
+    - name: Packages
+      uses: actions/download-artifact@v8
+      with:
+        name: packages
+        path: packages
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v6
+      with:
+        dotnet-version: 10.0.x
+    # A fixed version: this tool is given the certificate. It is a prerelease; there is no other kind yet.
+    - name: Install the Sign CLI
+      run: dotnet tool install --tool-path sign-tool sign --version 0.9.1-beta.26552.4
+    - name: Azure login
+      if: vars.SIGNING_PROVIDER == 'azure-key-vault'
+      uses: azure/login@v3
+      with:
+        client-id: ${{ vars.AZURE_CLIENT_ID }}
+        tenant-id: ${{ vars.AZURE_TENANT_ID }}
+        allow-no-subscriptions: true
+    # Sign.ps1 signs every package and then checks that each one verifies, on this machine, as signed by a
+    # trusted certificate. A package that does not is never uploaded, so it cannot be published.
+    - name: Sign and verify
+      shell: pwsh
+      env:
+        SIGNING_PROVIDER: ${{ vars.SIGNING_PROVIDER }}
+        SIGNING_TIMESTAMP_URL: ${{ vars.SIGNING_TIMESTAMP_URL }}
+        SIGNING_CERTIFICATE_FINGERPRINT: ${{ vars.SIGNING_CERTIFICATE_FINGERPRINT }}
+        SIGNING_KEY_VAULT_URL: ${{ vars.SIGNING_KEY_VAULT_URL }}
+        SIGNING_KEY_VAULT_CERTIFICATE: ${{ vars.SIGNING_KEY_VAULT_CERTIFICATE }}
+        # certificate-file: the .pfx file, Base64-encoded, and its password.
+        SIGNING_CERTIFICATE: ${{ secrets.SIGNING_CERTIFICATE }}
+        SIGNING_CERTIFICATE_PASSWORD: ${{ secrets.SIGNING_CERTIFICATE_PASSWORD }}
+      run: |
+        $arguments = @{ Provider = $env:SIGNING_PROVIDER; PackagesDirectory = 'packages'; SignTool = (Resolve-Path sign-tool/sign.exe).Path }
+        if ($env:SIGNING_TIMESTAMP_URL) { $arguments.TimestampUrl = $env:SIGNING_TIMESTAMP_URL }
+        if ($env:SIGNING_CERTIFICATE_FINGERPRINT) { $arguments.CertificateFingerprint = $env:SIGNING_CERTIFICATE_FINGERPRINT }
+        if ($env:SIGNING_KEY_VAULT_URL) { $arguments.KeyVaultUrl = $env:SIGNING_KEY_VAULT_URL }
+        if ($env:SIGNING_KEY_VAULT_CERTIFICATE) { $arguments.KeyVaultCertificate = $env:SIGNING_KEY_VAULT_CERTIFICATE }
+        $certificateFile = $null
+        try {
+          if ($env:SIGNING_PROVIDER -eq 'certificate-file') {
+            if (-not $env:SIGNING_CERTIFICATE) { throw 'The secret SIGNING_CERTIFICATE is not set.' }
+            $certificateFile = Join-Path $env:RUNNER_TEMP 'signing.pfx'
+            [IO.File]::WriteAllBytes($certificateFile, [Convert]::FromBase64String($env:SIGNING_CERTIFICATE))
+            $arguments.CertificateFile = $certificateFile
+          }
+          ./Sign.ps1 @arguments
+        }
+        finally {
+          if ($certificateFile -and (Test-Path $certificateFile)) { Remove-Item $certificateFile -Force }
+        }
+    - name: Signed packages
+      uses: actions/upload-artifact@v7
+      with:
+        name: packages-signed
+        path: |
+          packages/*.nupkg
+          packages/*.snupkg
+        if-no-files-found: error
+
   publish:
-    needs: [build, benchmark]
+    needs: [build, benchmark, sign]
+    # The sign job is skipped when no certificate is configured, and a skipped job must not skip the release.
+    # So: the build and the benchmark succeeded, and signing succeeded or was not asked for.
+    if: ${{ !cancelled() && needs.build.result == 'success' && needs.benchmark.result == 'success' && (needs.sign.result == 'success' || needs.sign.result == 'skipped') }}
     runs-on: ubuntu-latest
     # A maintainer decides what is released: add required reviewers to this environment
     # in the repository settings and the job waits for their approval.
     environment: release
     permissions:
-      id-token: write  # lets this job request the GitHub OIDC token that nuget.org trusts
-      contents: write  # creates the GitHub release
+      id-token: write      # the GitHub OIDC token: nuget.org trusts it, and the attestation is signed with it
+      contents: write      # creates the GitHub release
+      attestations: write  # stores the build provenance attestation
     steps:
     - name: Checkout
       uses: actions/checkout@v7
@@ -70,8 +161,18 @@ jobs:
     - name: Packages
       uses: actions/download-artifact@v8
       with:
-        name: packages
+        # The signed packages when the sign job ran, the packages as they were built otherwise.
+        name: ${{ needs.sign.result == 'success' && 'packages-signed' || 'packages' }}
         path: packages
+    # A statement, signed through GitHub's Sigstore instance and kept by GitHub, that these exact files were
+    # built by this workflow run from this tag. It needs no certificate. Anyone can check a package taken
+    # from the GitHub release with: gh attestation verify <file> -R ForkForward/dotnet-mapper
+    - name: Attest build provenance
+      uses: actions/attest@v4
+      with:
+        subject-path: |
+          packages/*.nupkg
+          packages/*.snupkg
     # The API key is valid for one hour, so it is requested right before the push.
     - name: NuGet login (OIDC to temporary API key)
       uses: NuGet/login@v1
