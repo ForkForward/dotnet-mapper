@@ -103,6 +103,8 @@ This will map the following properties to each other:
 
 A run of capital letters in a PascalCase destination member is read as one word, and its last capital starts the next word when a lower case letter follows it: `form_xml -> FormXML`, `xml_file -> XMLFile`, `https_connection -> HTTPSConnection`. A digit stays in the word it follows: `html5_parser -> HTML5Parser`. The reading in which every capital starts a word (`a_b_count -> ABCount`) is tried first, so where both find a source member, that one is used.
 
+[Flattening](Flattening.md) follows the words of the destination member through the source types at any depth, in both directions: `customer.address.city.name -> CustomerAddressCityName` and `Customer.Address.City.Name -> customer_address_city_name`. Where a chain of two source members matches the name as well (`customer_address.city_name`), that one is used.
+
 You can also set this per profile
 
 ```c#
