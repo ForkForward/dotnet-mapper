@@ -179,6 +179,45 @@ public class MaxDepthThroughConstructors
 
     static int Height(TreeDto tree) => tree == null ? 0 : 1 + Math.Max(Height(tree.Left), Height(tree.Right));
 
+    public class OrderWithLines
+    {
+        public List<OrderLine> Lines { get; set; }
+    }
+    public class OrderLine
+    {
+        public int Quantity { get; set; }
+    }
+    public class OrderLineDto
+    {
+        public int Quantity { get; set; }
+    }
+    public class LinesPropertyDto
+    {
+        public List<OrderLineDto> Lines { get; set; }
+    }
+    public record LinesRecordDto(List<OrderLineDto> Lines);
+
+    // The collection members of the last level a map with MaxDepth maps are left empty, whatever they hold. That has
+    // always been so for a collection in a property. A collection passed through a constructor was mapped before its
+    // level was counted, so it was filled one level longer: with MaxDepth(1) the property was empty and the
+    // constructor parameter was not. Now both are counted the same way.
+    [Theory]
+    [InlineData(1, 0)]
+    [InlineData(2, 2)]
+    public void A_collection_passed_through_a_constructor_is_left_empty_where_a_collection_property_is(int maxDepth, int expectedLines)
+    {
+        var mapper = new MapperConfiguration(cfg =>
+        {
+            cfg.CreateMap<OrderLine, OrderLineDto>();
+            cfg.CreateMap<OrderWithLines, LinesPropertyDto>().MaxDepth(maxDepth);
+            cfg.CreateMap<OrderWithLines, LinesRecordDto>().MaxDepth(maxDepth);
+        }).CreateMapper();
+        var order = new OrderWithLines { Lines = [new() { Quantity = 1 }, new() { Quantity = 2 }] };
+
+        mapper.Map<LinesPropertyDto>(order).Lines.Count.ShouldBe(expectedLines);
+        mapper.Map<LinesRecordDto>(order).Lines.Count.ShouldBe(expectedLines);
+    }
+
     static int Count(TreeDto tree) => tree == null ? 0 : 1 + Count(tree.Left) + Count(tree.Right);
 
     static List<int> Values<T>(T head, Func<T, T> next, Func<T, int> value) where T : class

@@ -56,7 +56,15 @@ public sealed class TypeMap
     }
     public static Exception MissingMapException(TypePair types) => MissingMapException(types.SourceType, types.DestinationType);
     public static Exception MissingMapException(Type sourceType, Type destinationType)
-        => new InvalidOperationException($"Missing map from {sourceType} to {destinationType}. Create using CreateMap<{sourceType.Name}, {destinationType.Name}>.");
+    {
+        InvalidOperationException exception = new($"Missing map from {sourceType} to {destinationType}. Create using CreateMap<{sourceType.Name}, {destinationType.Name}>.");
+        // It is thrown on purpose and says what is missing, but its type is the framework's: the mark is how
+        // ExpressionBuilder.IsUnexpected knows it, so that it is passed on as it is, wherever it is thrown.
+        exception.Data[MissingMapMark] = true;
+        return exception;
+    }
+    const string MissingMapMark = "ForkForward.Mapper.MissingMap";
+    internal static bool IsMissingMapException(Exception exception) => exception is InvalidOperationException && exception.Data.Contains(MissingMapMark);
     public bool Projection { get; set; }
     public LambdaExpression MapExpression { get; private set; }
     public Expression Invoke(Expression source, Expression destination) =>
@@ -362,24 +370,38 @@ public sealed class TypeMap
             }
             _features?.Seal(configuration);
         }
-        // A map that sets no MaxDepth takes the one of the map it inherits from. The inherited maps are sealed by now,
-        // so each of them already has what it inherits itself. When several of them have a MaxDepth, the most derived wins.
+        // A map that sets no MaxDepth takes the one of the map it inherits from. When several of them have a MaxDepth,
+        // the most derived wins.
         void InheritMaxDepth()
         {
-            TypeMap nearest = null;
-            foreach (var inheritedTypeMap in InheritedTypeMaps)
-            {
-                if (inheritedTypeMap.MaxDepth > 0 && (nearest == null ||
-                    (nearest.SourceType.IsAssignableFrom(inheritedTypeMap.SourceType) && nearest.DestinationType.IsAssignableFrom(inheritedTypeMap.DestinationType))))
-                {
-                    nearest = inheritedTypeMap;
-                }
-            }
+            var nearest = NearestWithMaxDepth(InheritedTypeMaps, null);
             if (nearest != null)
             {
                 MaxDepth = nearest.MaxDepth;
                 MaxDepthInherited = true;
             }
+        }
+        // An inherited map may not have its own inherited MaxDepth yet: a map whose sealing is in progress further up
+        // the stack is not sealed again, and which map that is depends on the order the maps were registered in.
+        // So an inherited map without a MaxDepth is looked through, to the maps it inherits from.
+        static TypeMap NearestWithMaxDepth(List<TypeMap> inheritedTypeMaps, TypeMap nearest)
+        {
+            foreach (var inheritedTypeMap in inheritedTypeMaps)
+            {
+                if (inheritedTypeMap.MaxDepth > 0)
+                {
+                    if (nearest == null ||
+                        (nearest.SourceType.IsAssignableFrom(inheritedTypeMap.SourceType) && nearest.DestinationType.IsAssignableFrom(inheritedTypeMap.DestinationType)))
+                    {
+                        nearest = inheritedTypeMap;
+                    }
+                }
+                else if (inheritedTypeMap._details?.InheritedTypeMaps is { } furtherUp)
+                {
+                    nearest = NearestWithMaxDepth(furtherUp, nearest);
+                }
+            }
+            return nearest;
         }
         public void IncludeDerivedTypes(TypePair derivedTypes)
         {

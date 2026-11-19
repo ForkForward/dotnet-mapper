@@ -178,4 +178,6 @@ What did not change:
 - The value is resolved and mapped before the condition is evaluated, also when the condition then says no. See [Resolvers and conditions](Custom-value-resolvers.md#resolvers-and-conditions).
 - The destination member value that a condition gets, and preconditions.
 
+A condition that compares the source member with the destination member, to skip a value that has not changed, now compares the source value with a destination value of another type when the two members differ in type: an `int` with a `long`, an enum with the string it becomes. They are never equal, so such a member is no longer skipped; it is assigned the value it already had.
+
 A condition that needs the converted value declares the type of the destination member: configure it in a typed `ForMember`.

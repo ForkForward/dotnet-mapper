@@ -587,6 +587,22 @@ public class PlanBuildingErrors
         }
     }
 
+    // "Missing map from ... to ..." is thrown on purpose and says what is missing, but its type is the framework's
+    // InvalidOperationException. It is passed on as it is at every level, not only for the types of the query itself.
+    [Fact]
+    public void A_missing_map_for_the_elements_of_a_collection_member_is_reported_as_before()
+    {
+        var configuration = new MapperConfiguration(cfg => cfg.CreateProjection<ListOuter, ListOuterDto>());
+
+        var topLevel = Should.Throw<InvalidOperationException>(() => Query<Source>().ProjectTo<Destination>(configuration));
+        var nested = Should.Throw<InvalidOperationException>(() => Query<ListOuter>().ProjectTo<ListOuterDto>(configuration));
+
+        topLevel.GetType().ShouldBe(typeof(InvalidOperationException));
+        nested.GetType().ShouldBe(typeof(InvalidOperationException));
+        topLevel.Message.ShouldStartWith($"Missing map from {typeof(Source)} to {typeof(Destination)}.");
+        nested.Message.ShouldBe(topLevel.Message);
+    }
+
     [Fact]
     public void The_same_projections_work_when_the_pair_can_be_projected()
     {

@@ -226,6 +226,69 @@ public class MaxDepthInheritance
 
     static Base Chain<T>(int length) where T : Base, new() => Chain(length, _ => new T());
 
+    public class ChainRoot
+    {
+        public ChainLeaf Child { get; set; }
+    }
+    public class ChainMiddle : ChainRoot
+    {
+    }
+    public class ChainLeaf : ChainMiddle
+    {
+    }
+    public class ChainRootDto
+    {
+        public ChainLeafDto Child { get; set; }
+    }
+    public class ChainMiddleDto : ChainRootDto
+    {
+    }
+    public class ChainLeafDto : ChainMiddleDto
+    {
+    }
+
+    // The map in the middle may still be in the middle of its own sealing when the map below it asks it for its
+    // MaxDepth: the root map has a member of the leaf type, so sealing the root seals the leaf. Which map is sealed
+    // first depends on the order they were registered in, and the leaf must get the limit in every order.
+    [Theory]
+    [InlineData(0, 1, 2)]
+    [InlineData(0, 2, 1)]
+    [InlineData(1, 0, 2)]
+    [InlineData(1, 2, 0)]
+    [InlineData(2, 0, 1)]
+    [InlineData(2, 1, 0)]
+    public void Through_a_map_in_between_in_every_registration_order(int first, int second, int third)
+    {
+        Action<IMapperConfigurationExpression>[] maps =
+        [
+            cfg => cfg.CreateMap<ChainRoot, ChainRootDto>().MaxDepth(3),
+            cfg => cfg.CreateMap<ChainMiddle, ChainMiddleDto>().IncludeBase<ChainRoot, ChainRootDto>(),
+            cfg => cfg.CreateMap<ChainLeaf, ChainLeafDto>().IncludeBase<ChainMiddle, ChainMiddleDto>(),
+        ];
+        var configuration = new MapperConfiguration(cfg =>
+        {
+            maps[first](cfg);
+            maps[second](cfg);
+            maps[third](cfg);
+        });
+        ChainLeaf leaf = null;
+        for (var index = 0; index < 10; index++)
+        {
+            leaf = new() { Child = leaf };
+        }
+
+        var levels = 0;
+        for (ChainRootDto node = configuration.CreateMapper().Map<ChainRootDto>(leaf); node != null; node = node.Child)
+        {
+            node.ShouldBeOfType<ChainLeafDto>();
+            levels++;
+        }
+
+        configuration.FindTypeMapFor<ChainMiddle, ChainMiddleDto>().MaxDepth.ShouldBe(3);
+        configuration.FindTypeMapFor<ChainLeaf, ChainLeafDto>().MaxDepth.ShouldBe(3);
+        levels.ShouldBe(3);
+    }
+
     static Base Chain(int length, Func<int, Base> create)
     {
         Base head = null;

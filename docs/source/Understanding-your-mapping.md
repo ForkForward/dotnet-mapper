@@ -77,6 +77,6 @@ What it does not do:
 
 - The exceptions the library throws on purpose are not wrapped and have not changed: `AutoMapperConfigurationException`, `AutoMapperMappingException`, `DuplicateTypeMapConfigurationException`.
 - The maps on the way from the map that was asked for to the map that failed are not listed.
-- `ProjectTo` for two types that have no map is still an `InvalidOperationException` that says `Missing map from ... to ...`. When it is the elements of a collection member that have no map, that exception is the inner one, and `Error building the projection.` names the member.
+- `ProjectTo` for two types that have no map is still an `InvalidOperationException` that says `Missing map from ... to ...`, also when it is the elements of a collection member that have no map.
 - A `ForPath` member that is given no `MapFrom` still fails with a bare `NullReferenceException` when the configuration is created. Asking for a map to an open generic type, such as `typeof(Destination<>)`, still fails with an `ArgumentException`.
 - A map whose plan could not be built stays without a plan. Fix the map and create the configuration again; do not catch the exception and go on with the same configuration.

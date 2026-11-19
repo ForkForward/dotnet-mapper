@@ -36,7 +36,8 @@ public static class ExpressionBuilder
     // rely on their type and message: they are passed on as they are. A nested type map that failed has already
     // named itself and its member, so the maps above it pass that on too.
     internal static bool IsUnexpected(Exception exception) =>
-        exception is not (AutoMapperMappingException or AutoMapperConfigurationException or DuplicateTypeMapConfigurationException);
+        exception is not (AutoMapperMappingException or AutoMapperConfigurationException or DuplicateTypeMapConfigurationException) &&
+        !TypeMap.IsMissingMapException(exception);
     // The filter of the catch that wraps a mapping error; see WrapsException. A filter runs while the exception is
     // still looking for its handler, so the levels it says no to are left in a single pass, without their handlers
     // running; it costs nothing until an exception is thrown.
