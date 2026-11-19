@@ -61,7 +61,7 @@ A lambda passed to `ConstructUsing` cannot get services from a dependency inject
 
 !!! info "Added in this fork"
 
-    `IDestinationFactory<TSource, TDestination>` is not part of AutoMapper 14. It is available from the release that follows 14.1.1.
+    `IDestinationFactory<TSource, TDestination>` is not part of AutoMapper 14. It is available from 15.0.0.
 
 ```c#
 using ForkForward.Mapper;

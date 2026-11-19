@@ -29,12 +29,12 @@ That is all. The code compiles and behaves as it did with AutoMapper 14.0.0, apa
 ## What stays as it was
 
 - **Type names.** `IMapper`, `MapperConfiguration`, `Profile`, `AutoMapperMappingException`, `AutoMapperConfigurationException`, `AutoMapAttribute`, `AddAutoMapper` and every other type and member keep their names, including the ones that carry the old project's name.
-- **Behaviour.** Conventions, configuration, validation, projection: unchanged in 14.1.0 and 14.1.1. The only difference in behaviour there is a security fix: a source graph nested deeper than the thread's stack allows now ends in an `AutoMapperMappingException` instead of a process crash ([CVE-2026-32933](https://github.com/ForkForward/dotnet-mapper/blob/master/docs/security/CVE-2026-32933.md)). The release that follows 14.1.1 changes four more things; see the next section.
+- **Behaviour.** Conventions, configuration, validation, projection: unchanged in 14.1.0 and 14.1.1. The only difference in behaviour there is a security fix: a source graph nested deeper than the thread's stack allows now ends in an `AutoMapperMappingException` instead of a process crash ([CVE-2026-32933](https://github.com/ForkForward/dotnet-mapper/blob/master/docs/security/CVE-2026-32933.md)). 15.0.0 changes four more things; see the next section.
 - **Documentation.** These pages are AutoMapper's, with the namespace updated. Sections written for this fork say so.
 
 ## What behaves differently from AutoMapper 14
 
-From the release that follows 14.1.1. Each of these is a correction of something AutoMapper 14 did, and each can be noticed by code that relied on the old behaviour:
+From 15.0.0. Each of these is a correction of something AutoMapper 14 did, and each can be noticed by code that relied on the old behaviour:
 
 | What | AutoMapper 14 | This fork | Where |
 |---|---|---|---|
@@ -47,7 +47,7 @@ Fixed without a change for code that worked: a destination member such as `FormX
 
 ## What this fork adds to AutoMapper 14
 
-Also from the release that follows 14.1.1:
+Also from 15.0.0:
 
 - [Conditions and preconditions as classes](Conditional-mapping.md#conditions-as-classes), which can take services from the dependency injection container.
 - [Destination factory classes](Construction.md#creating-the-destination-with-a-factory-class), likewise.
@@ -57,8 +57,8 @@ Also from the release that follows 14.1.1:
 
 - **Assembly identity.** The assembly is `ForkForward.Mapper.dll`, signed with the fork's own key (public key token `d1f0d2ab1c32618c`). A library compiled against `AutoMapper.dll` does not load against this assembly; it has to be recompiled against `ForkForward.Mapper`. Assembly binding redirects cannot bridge the two, as the names differ.
 - **Both packages at once.** `AutoMapper` and `ForkForward.Mapper` can be referenced in the same project without a conflict, since nothing overlaps, but a type from one is not the type from the other: an `IMapper` registered by `AutoMapper` does not satisfy a constructor that asks for `ForkForward.Mapper.IMapper`. Move a project as a whole.
-- **.NET version.** `14.1.0` and `14.1.1` target .NET 8, like AutoMapper 14, and run on every later .NET. From the release that follows 14.1.1 the package targets .NET 10 and .NET 11, the versions that are in support. An application on .NET 8 or .NET 9 cannot install that release: it stays on `14.1.1`, without the additions and fixes listed above, until it moves to .NET 10.
-- **Version numbers** continue from 14: `ForkForward.Mapper 14.1.0` is the first stable release. The previews `14.1.0-preview.2` and `14.1.0-preview.3` still used the `AutoMapper` names.
+- **.NET version.** `14.1.0` and `14.1.1` target .NET 8, like AutoMapper 14, and run on every later .NET. From 15.0.0 the package targets .NET 10 and .NET 11, the versions that are in support. An application on .NET 8 or .NET 9 cannot install that release: it stays on `14.1.1`, without the additions and fixes listed above, until it moves to .NET 10.
+- **Version numbers** continue from 14: `ForkForward.Mapper 14.1.0` is the first stable release. 15.0.0 is a major version because it no longer targets .NET 8 and .NET 9 and because some fixes change behaviour. Despite the number it is not AutoMapper 15, which is another product under another licence: nothing of it is in this fork. The previews `14.1.0-preview.2` and `14.1.0-preview.3` still used the `AutoMapper` names.
 
 ## Moving from AutoMapper 15 or later
 

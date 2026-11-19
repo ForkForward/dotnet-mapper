@@ -59,7 +59,7 @@ Release steps for the next version: merge what goes in; push the tag `v<version>
 
 ## Phase 4: what AutoMapper gained after 14
 
-AutoMapper 15, 16 and 17 were compared with this fork on 2026-11-19, from public descriptions only: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md). What applies to an MIT-licensed library was designed and written here. The items below are for the release that follows 14.1.1 and are described in [CHANGELOG.md](CHANGELOG.md).
+AutoMapper 15, 16 and 17 were compared with this fork on 2026-11-19, from public descriptions only: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md). What applies to an MIT-licensed library was designed and written here. The items below are in 15.0.0 and are described in [CHANGELOG.md](CHANGELOG.md).
 
 Capabilities:
 
@@ -89,11 +89,11 @@ Open, for the owner or a maintainer:
 - [x] Every release gets a build provenance attestation, which needs no certificate, and the release workflow signs the packages as soon as a certificate is configured: [package signing](docs/security/package-signing.md)
 - [ ] **Owner: a code-signing certificate.** Without one there is no author signature. It has to come from a certificate authority Windows trusts, be registered on nuget.org, and be reachable from the release workflow (Azure Key Vault, or a `.pfx` file where one exists). The first signed release is also the first run of the signing job
 - [ ] An SBOM attached to each release, as AutoMapper has since 16.2.0
-- [ ] **Decision needed: the version number of the next release.** Dropping `net8.0` breaks an application that updates the package while still on .NET 8 or .NET 9, and several fixes change behaviour. SemVer calls that a new major version; the 14.x line was chosen to say "compatible with AutoMapper 14", and 15 is a number AutoMapper has used for something else
+- [x] **Decided: the release is `15.0.0`.** Decided by the maintainer on 2026-11-19: a new major version, because `net8.0` is dropped and several fixes change behaviour. It is not AutoMapper 15, and the documentation says so where the version is named
 
 Not taken over, by decision or because it does not apply: a default `MaxDepth` of 64 (this fork protects the process with the stack check instead, and every graph that mapped before maps the same); licence keys and the logger factory that reports on them; the dependency on a JWT library.
 
-Defects found while doing this, all present in 14.0.0 as well, and fixed for the release that follows 14.1.1:
+Defects found while doing this, all present in 14.0.0 as well, and fixed in 15.0.0:
 
 - [x] Registration order of open generic maps, the maps they include and the maps of included members: an open generic base that includes a base of its own, two chained open generic maps, `IncludeMembers` of a closed generic map with included members of its own or inherited ones
 - [x] `IncludeMembers` of a map that inherits its own included members failed at every `Map` call

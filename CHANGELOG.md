@@ -4,9 +4,11 @@ All notable changes to ForkForward.Mapper. The format follows [Keep a Changelog]
 
 ## [Unreleased]
 
+## [15.0.0] - 2026-11-19
+
 The first changes to mapping itself since the fork. They close the functional gap to AutoMapper 17.0.0, the newest release, as far as it applies to an MIT-licensed library: what was compared, what was left out and why is in [the gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md). Everything was designed and written here, from public descriptions of what the newer versions do; none of their code, tests or documentation was used.
 
-The entries that alter what existing code can observe are marked **Breaking** or **Behaviour change**. The one that concerns every user is the first under "Changed": the package targets .NET 10 and .NET 11, and an application on .NET 8 or .NET 9 stays on `14.1.1`.
+The entries that alter what existing code can observe are marked **Breaking** or **Behaviour change**. The one that concerns every user is the first under "Changed": the package targets .NET 10 and .NET 11, and an application on .NET 8 or .NET 9 stays on `14.1.1`. 15.0.0 is a major version because it no longer targets .NET 8 and .NET 9 and because some fixes change behaviour. Despite the number it is not AutoMapper 15, which is another product under another licence: nothing of it is in this fork.
 
 ### Added
 
@@ -111,7 +113,8 @@ First preview on nuget.org: AutoMapper 14.0.0 plus three commits, rebranded as a
 
 The code starts at commit [`92816585`](https://github.com/AutoMapper/AutoMapper.Archive/commit/928165859deaf9a59c4433771b3c58a9536284dd) of the AutoMapper repository, which is release 14.0.0 plus three commits, under the MIT licence. Its history is in [docs/source](docs/source) (the upgrade guides) and in the [AutoMapper release notes](https://github.com/AutoMapper/AutoMapper.Archive/releases).
 
-[Unreleased]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.1...HEAD
+[Unreleased]: https://github.com/ForkForward/dotnet-mapper/compare/v15.0.0...HEAD
+[15.0.0]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.1...v15.0.0
 [14.1.1]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0...v14.1.1
 [14.1.0]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.3...v14.1.0
 [14.1.0-preview.3]: https://github.com/ForkForward/dotnet-mapper/compare/v14.1.0-preview.2...v14.1.0-preview.3

@@ -232,8 +232,8 @@ dbContext.Categories.ProjectTo<CategoryDto>(configuration);
 The member that would use the map a third time is not projected, and stays `null`. What to know about it:
 
 - **The count is for the whole query, not for one path through it.** Two members that use the same map share it: with `MaxDepth(1)` the second one is `null`.
-- **With `AllowNullDestinationValues` off** the member gets an empty destination instead of `null`: the object is created, and none of its members is projected. A destination that is created through its constructor gets the default values of the parameters there: the default of an optional parameter, `default(T)` of any other. Before the release that follows 14.1.1 the parameters were still projected, so a model that continues through a constructor parameter went on past the limit, as far as `RecursiveQueriesMaxDepth` allows.
-- **A map that has derived maps** gives at its limit what any other map gives, for every row, whatever its type: `null`, or the empty destination of the map's own type. Its derived maps are not used there. Before the release that follows 14.1.1 building such a projection failed with a `NullReferenceException`; with `AllowNullDestinationValues` off it did not fail, and the rows of a derived type went on past the limit.
+- **With `AllowNullDestinationValues` off** the member gets an empty destination instead of `null`: the object is created, and none of its members is projected. A destination that is created through its constructor gets the default values of the parameters there: the default of an optional parameter, `default(T)` of any other. Before 15.0.0 the parameters were still projected, so a model that continues through a constructor parameter went on past the limit, as far as `RecursiveQueriesMaxDepth` allows.
+- **A map that has derived maps** gives at its limit what any other map gives, for every row, whatever its type: `null`, or the empty destination of the map's own type. Its derived maps are not used there. Before 15.0.0 building such a projection failed with a `NullReferenceException`; with `AllowNullDestinationValues` off it did not fail, and the rows of a derived type went on past the limit.
 - **The branch for the map itself is built before the branches for its derived maps.** In a model that refers to itself, the uses the limit allows are spent there. A row of a derived type gets its derived destination type, and its member of the base type is `null`.
 - **A derived map does not inherit `MaxDepth` here.** In `Map` it does. A derived map that sets its own gives `null` for the rows of its type once it is reached. Because its branch is built last, those can be the rows of the query itself.
 - **A map whose destination type is abstract is not counted.** Only its derived maps are projected, so its `MaxDepth` has no effect.
@@ -262,7 +262,7 @@ The type tests make the query read every derived type. With Entity Framework Cor
 
 !!! info "New in this fork"
 
-    The switch below is not in AutoMapper 14. It comes with the release that follows 14.1.1. Without it nothing changes: polymorphic projection is on, and the projection is the one shown above.
+    The switch below is not in AutoMapper 14. It comes with 15.0.0. Without it nothing changes: polymorphic projection is on, and the projection is the one shown above.
 
 When the derived maps are there for `Map` and a query needs only the base members, switch polymorphic projection off for the map:
 

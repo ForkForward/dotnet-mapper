@@ -7,7 +7,7 @@ What a released `ForkForward.Mapper` package carries to show where it comes from
 | | Made by | On which packages | Needs |
 |---|---|---|---|
 | Repository signature | nuget.org, when it accepts a package | every package on nuget.org | nothing |
-| Build provenance attestation | the release workflow, signed through GitHub's Sigstore instance and kept by GitHub | every release after 14.1.1 | nothing |
+| Build provenance attestation | the release workflow, signed through GitHub's Sigstore instance and kept by GitHub | every release from 15.0.0 | nothing |
 | Author signature | the release workflow, with the project's code-signing certificate | releases made after a certificate is configured | a certificate, which the project does not have yet |
 
 The repository signature says that the package is the one nuget.org received. The attestation says which workflow run, from which commit and tag of this repository, built the file. The author signature says that the holder of a certificate issued to the project signed it; it is the only one of the three that NuGet clients can be told to require.

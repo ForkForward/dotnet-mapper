@@ -5,7 +5,7 @@
 | Advisories | [GHSA-6vhm-j9h7-f9gh](https://github.com/advisories/GHSA-6vhm-j9h7-f9gh) and [GHSA-gpwp-5797-mjff](https://github.com/advisories/GHSA-gpwp-5797-mjff), both high (CVSS 7.5), published 2026-11-05 |
 | Affects | AutoMapper below 15.1.4, and 16.0.0 up to 16.2.x. Read literally, the first range includes 14.0.0, the code this fork starts from |
 | Process crash in this fork | Not reproduced. `ForkForward.Mapper` 14.1.0 and later end every route the advisories describe in an exception |
-| Functional defects in this fork | Two, fixed in the first release after 14.1.1: `MaxDepth` was ignored through constructor parameters and was not inherited by derived maps |
+| Functional defects in this fork | Two, fixed in 15.0.0: `MaxDepth` was ignored through constructor parameters and was not inherited by derived maps |
 | Not covered | applications compiled with Native AOT, which the library does not support: see [CVE-2026-32933](CVE-2026-32933.md#native-aot) |
 | Checked from | the public advisory texts and this repository's code only. The fixes in AutoMapper 15.1.4 and 16.3.0 are under another licence and were not looked at, as [AI_POLICY.md](../../AI_POLICY.md) requires |
 
@@ -59,4 +59,4 @@ There is still no default depth limit. Every graph that mapped before, and has n
 
 ## What users should do
 
-Nothing is needed to stay protected against the crash: 14.1.0 and 14.1.1 already end these graphs in an exception. Update to the next release if a map relies on `MaxDepth` together with constructor mapping or derived maps. Code that could receive graphs of untrusted depth may want to catch `AutoMapperMappingException` around the `Map` call and reject the input.
+Nothing is needed to stay protected against the crash: 14.1.0 and 14.1.1 already end these graphs in an exception. Update to 15.0.0 if a map relies on `MaxDepth` together with constructor mapping or derived maps. Code that could receive graphs of untrusted depth may want to catch `AutoMapperMappingException` around the `Map` call and reject the input.

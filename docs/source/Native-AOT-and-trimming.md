@@ -19,7 +19,7 @@ The library works at run time with things that trimming and ahead-of-time compil
 
 ## What the build tells you
 
-From the release that follows 14.1.1, the constructors of `MapperConfiguration` and every `AddAutoMapper` overload carry the `RequiresUnreferencedCode` and `RequiresDynamicCode` attributes. A project that is published trimmed or with Native AOT, or that switches the trim or AOT analyzers on, gets the warnings `IL2026` and `IL3050` at the line that creates the configuration, with a link to this page. Before that, such an application built without a word about it and failed when it started.
+From 15.0.0, the constructors of `MapperConfiguration` and every `AddAutoMapper` overload carry the `RequiresUnreferencedCode` and `RequiresDynamicCode` attributes. A project that is published trimmed or with Native AOT, or that switches the trim or AOT analyzers on, gets the warnings `IL2026` and `IL3050` at the line that creates the configuration, with a link to this page. Before that, such an application built without a word about it and failed when it started.
 
 Projects that do not use those analyzers see nothing. A default Blazor WebAssembly application, which trims only the framework, was checked: it builds and publishes without these warnings.
 
@@ -74,7 +74,7 @@ Two more things to know:
 - Plans are interpreted, so mapping is several times slower and allocates more.
 - `Microsoft.Extensions.DependencyInjection` refuses to create an open generic service for a value type when there is no dynamic code. A type converter such as `MyConverter<T>` resolved from the container for an enum or a struct fails with its `InvalidOperationException`; that check is the container's, not the mapper's.
 
-Before the release that follows 14.1.1, every member mapping error in this mode surfaced as `NotSupportedException: Specified method is not supported` instead of an `AutoMapperMappingException`. That is fixed; the bug was inherited from AutoMapper 14.
+Before 15.0.0, every member mapping error in this mode surfaced as `NotSupportedException: Specified method is not supported` instead of an `AutoMapperMappingException`. That is fixed; the bug was inherited from AutoMapper 14.
 
 ## Will it be supported?
 
