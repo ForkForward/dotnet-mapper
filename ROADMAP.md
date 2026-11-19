@@ -24,10 +24,10 @@ Where ForkForward.Mapper is going, and the decisions that are still open. Open d
 - [x] Fix CVE-2026-32933 independently: a source graph too deep for the stack ends in an exception, not in a process crash ([docs/security/CVE-2026-32933.md](docs/security/CVE-2026-32933.md))
 - [ ] Publish a GitHub security advisory for `ForkForward.Mapper` up to 14.1.0-preview.3, so that scanners flag the old previews (repository Security tab; only a maintainer can do this)
 - [x] ~~Make the API comparison a hard gate~~ Removed with the namespace rename in 14.1.0: the comparison with the `AutoMapper` assembly no longer applies. Replacement planned in phase 3
-- [x] Tests, benchmark and sample app target `net10.0`; CI builds with the .NET 10 SDK only
+- [x] Tests, benchmark and sample app target `net10.0`, the unit and dependency injection tests also `net11.0`; CI builds with the .NET 11 SDK and runs the tests on the .NET 10 and the .NET 11 runtime
 - [x] The unit tests also run with mapping plans interpreted (dynamic code switched off), and built with the .NET 11 SDK on the .NET 11 runtime, on Windows and Ubuntu. Both are new CI jobs, to be added when the checks are made required
 - [x] Solution in the `.slnx` format; build output in the artifacts layout
-- [ ] Decide which .NET versions the library targets (today `net8.0`)
+- [x] **Decided: the library targets `net10.0` and `net11.0`.** Decided by the maintainer on 2026-11-19: the .NET versions that are in support. `net8.0` is no longer a target (.NET 8 and .NET 9 reached the end of support on 2026-11-10); `14.1.1` is the last release for them. .NET Standard and .NET Framework are not targets: the code this fork starts from had already dropped them
 - [x] Review the inherited documentation for references to infrastructure that the fork does not have (the MyGet page removed, the index points at this fork's NuGet package, changelog and issues)
 
 ## Phase 2: first release of `ForkForward.Mapper`
@@ -59,7 +59,7 @@ Release steps for the next version: merge what goes in; push the tag `v<version>
 
 ## Phase 4: what AutoMapper gained after 14
 
-AutoMapper 15, 16 and 17 were compared with this fork on 2026-11-19, from public descriptions only: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md). What applies to an MIT-licensed library was designed and written here. The items below are in the working tree for the release that follows 14.1.1 and are described in [CHANGELOG.md](CHANGELOG.md).
+AutoMapper 15, 16 and 17 were compared with this fork on 2026-11-19, from public descriptions only: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md). What applies to an MIT-licensed library was designed and written here. The items below are for the release that follows 14.1.1 and are described in [CHANGELOG.md](CHANGELOG.md).
 
 Capabilities:
 
@@ -78,32 +78,47 @@ Fixes for bugs inherited from 14.0.0:
 - [x] `MaxDepth` through constructor parameters, and inherited by derived maps
 - [x] A regression test for every route of GHSA-6vhm-j9h7-f9gh and GHSA-gpwp-5797-mjff: none of them ends the process here ([docs/security](docs/security/GHSA-6vhm-j9h7-f9gh-and-GHSA-gpwp-5797-mjff.md))
 
-Decisions for a maintainer before these are released:
+Decided, and what the decision was:
 
-- [ ] **Decision needed: the behaviour changes.** Four of the items above change what existing code can observe, which [AI_POLICY.md](AI_POLICY.md) leaves to a maintainer: what a condition on `ForAllMembers` sees (the widest of the four: it also reaches a source collection that is `null`), the exception type when a plan cannot be built, and `MaxDepth` through constructors and in derived maps. Each is isolated and can be taken out on its own. The condition change can also be narrowed to members whose source and destination types differ, which is one condition in `TypeMapPlanBuilder.ConditionSourceMember`
-- [ ] **Decision needed: new members on public interfaces.** `IMemberConfigurationExpression`, `IMappingExpressionBase`, `IProjectionExpressionBase`, `IGlobalConfigurationExpression` and `IGlobalConfiguration` gained members without a default implementation. Nothing that calls them is affected; a type outside the library that implements one of them no longer compiles
-- [ ] **Decision needed: two plan errors that stay unnamed.** A `ForPath` member without `MapFrom` still fails with a bare `NullReferenceException`, and a request for a map to an open generic type with a bare `ArgumentException`, because existing tests pin those types (`ForPathWithNullExpressionShouldFail`, `GenericMapWithUntypedMap`). Naming the first one too means changing that test
-- [ ] **Decision needed: target frameworks**, together with the open item in phase 1. AutoMapper 17.0.0 targets .NET 10, .NET 11, .NET Standard 2.0 and .NET Framework 4.7.1; .NET 8 and .NET 9 reached the end of support on 2026-11-10. The `net8.0` build here runs on every later .NET
-- [ ] Signed packages and an SBOM attached to each release, as AutoMapper has since 16.0.0 and 16.2.0. Signing needs a code-signing certificate
+- [x] **The four behaviour changes and the new members on public interfaces** went in with pull request 25, which the maintainer merged on 2026-11-19: what a condition on `ForAllMembers` sees, the exception type when a plan cannot be built, `MaxDepth` through constructors and in derived maps, and the members `IMemberConfigurationExpression`, `IMappingExpressionBase`, `IProjectionExpressionBase`, `IGlobalConfigurationExpression` and `IGlobalConfiguration` gained
+- [x] **Target frameworks:** `net10.0` and `net11.0`; see phase 1
+- [x] **The defects found on the way are to be fixed**: asked for by the maintainer on 2026-11-19. The `ForPath` member without `MapFrom` was fixed with them, and its test, which pinned a bare `NullReferenceException`, was changed; that is the one existing test this changed. See below
+
+Open, for the owner or a maintainer:
+
+- [x] Every release gets a build provenance attestation, which needs no certificate, and the release workflow signs the packages as soon as a certificate is configured: [package signing](docs/security/package-signing.md)
+- [ ] **Owner: a code-signing certificate.** Without one there is no author signature. It has to come from a certificate authority Windows trusts, be registered on nuget.org, and be reachable from the release workflow (Azure Key Vault, or a `.pfx` file where one exists). The first signed release is also the first run of the signing job
+- [ ] An SBOM attached to each release, as AutoMapper has since 16.2.0
+- [ ] **Decision needed: the version number of the next release.** Dropping `net8.0` breaks an application that updates the package while still on .NET 8 or .NET 9, and several fixes change behaviour. SemVer calls that a new major version; the 14.x line was chosen to say "compatible with AutoMapper 14", and 15 is a number AutoMapper has used for something else
 
 Not taken over, by decision or because it does not apply: a default `MaxDepth` of 64 (this fork protects the process with the stack check instead, and every graph that mapped before maps the same); licence keys and the logger factory that reports on them; the dependency on a JWT library.
 
-Found while doing this, all present in 14.0.0 as well, none fixed yet:
+Defects found while doing this, all present in 14.0.0 as well, and fixed for the release that follows 14.1.1:
 
-- [ ] Registration order still matters for some open generic configurations: an open generic base map that itself includes a base, two chained open generic maps, and `IncludeMembers` of a closed generic map that has its own `IncludeMembers`. The closed map an include creates is sealed while profiles are still being configured. Deferring that broke configurations that work today, so it needs its own design
-- [ ] `IncludeAllDerived()` alone on an open generic map does not reach closed derived maps, and a non-generic base map that includes an open generic map is not inherited by the closed map `IncludeBase` creates
-- [ ] `ProjectTo` with included derived maps throws a `NullReferenceException` when the base map reaches its `MaxDepth`; and with `AllowNullDestinationValues = false`, constructor parameters are projected past `MaxDepth`
-- [ ] The plan of a member that is mapped through the context is cached by its types alone, so members of different maps with the same types share the plan built for the first of them: at a `MaxDepth` limit the collection members of the last level are filled or left empty depending on which map was used first
-- [ ] Flattening over three levels across two different naming conventions is not matched, in either direction (`CustomerAddressCity` from `customer.address.city`)
-- [ ] An inlined member with a user-defined map from `T` to `T?` that has a type converter, and a value converter on a flattened member, throw "Nullable object must have a value" for a null on the way
-- [ ] `PreserveReferences()` on a map whose source is a value type fails when the configuration is created
-- [ ] The non-generic `CreateMap(typeof(S), typeof(D))` with a value type fails when the configuration is created for `ConstructUsing`, `BeforeMap` and `AfterMap`
-- [ ] A type map whose plan could not be built stays sealed without a plan, and a later request of another shape for it fails with a `NullReferenceException` inside the plan error
+- [x] Registration order of open generic maps, the maps they include and the maps of included members: an open generic base that includes a base of its own, two chained open generic maps, `IncludeMembers` of a closed generic map with included members of its own or inherited ones
+- [x] `IncludeMembers` of a map that inherits its own included members failed at every `Map` call
+- [x] `ProjectTo` with derived maps at a `MaxDepth` limit, constructor parameters projected past the limit, and `ISet<T>` destination members
+- [x] The plan of a member mapped through the context was shared by members of different maps with the same types
+- [x] Flattening over three or more levels across two naming conventions
+- [x] "Nullable object must have a value" for a null on the way into a nullable value type, with a type converter or a value converter
+- [x] `PreserveReferences()` with a value type, and the non-generic `CreateMap` with a value type
+- [x] A type map whose plan could not be built answered later requests with a `NullReferenceException`
+- [x] A `ForPath` member without `MapFrom` failed with a bare `NullReferenceException`
+- [x] The four points the review of the new code left open: `MaxDepth` inherited from unrelated maps, the depth counter after a caught failure, an ambiguous destination factory, open generic classes through `ForAllMaps`
+
+Still open after that. Each was measured or read in the code while fixing the list above; none is new in this fork unless it says so:
+
+- [ ] **Decision needed: a map above the root of an open generic chain** that includes the root with `Include` or `IncludeAllDerived` is inherited only when it is registered before the map that needs the closed map. In 12 of 24 orders its configuration is lost without an error (in 8 of those the configuration could not be created before). An addition of a few lines gives 24 of 24, but changes 4 orders that run today and builds that map's own plan earlier
+- [ ] `IncludeAllDerived()` alone on an open generic map does not reach closed derived maps; a non-generic base map that includes an open generic map or the closed pair is not inherited; `Map<DestinationBase>(new SourceDerived())` returns the base type when the base is a closed generic map created by `IncludeBase`; the plan of that closed base map is built before the configured maps are known. Each needs the seal of such a map split from the point where it is created, which changes plans that run today
+- [ ] `AfterMap` of an included member's map runs twice in a map that inherits the `IncludeMembers` through `IncludeBase`; `IncludeMembers("name")` on an open generic base map is not inherited by a closed map that includes it; a type cycle from a closed base map through a configured map and back is not detected
+- [ ] In `ProjectTo`, `MaxDepth` counts the uses of a map in the whole query, not along one path: of two members of the same type the second can come out empty, and a row of a derived type gets fewer levels than a row of the base type. `MaxDepth` on a map with an abstract destination has no effect there. `Collection<T>` and `ReadOnlyCollection<T>` of mapped elements, and immutable collections, cannot be projected; they fail with a clear error now
+- [ ] **Decision needed: a value converter given its source member as a lambda** (`o.ConvertUsing(converter, s => s.Inner.Number)`) is not null checked: a null on the way is a `NullReferenceException`, for every destination type, as for member value resolvers. Checking it would call converters of non-nullable members with a default value
+- [ ] `mapper.Map<TSource, TDestination>(source)` on a map created with `CreateMap(Type, Type)` and a lambda `ConvertUsing` throws `InvalidCastException`; a construction function that returns null for a struct destination ends in a `NullReferenceException`
+- [ ] A destination name that needs both readings of capitals at once (`ABCustomerXMLAddress` from `a_b_customer.xml_address`) is not matched
+- [ ] An open generic type converter given through `ForAllMaps` to a map that was not made from an open map is never closed and fails at mapping time
+- [ ] A top-level `Map` call and `CompileMappings` share one plan per pair of types, built by whichever comes first: `Map<List<int>, List<int>>(null, existing)` gives a different result after `CompileMappings()`. A member mapped through the context by a built-in mapper gets the global profile's null handling, not its map's
+- [ ] **Decision needed: `CompileMappings` and the plans of members.** Since plans are cached per member, `CompileMappings` also compiles the plan of every member that is not inlined, so that first use stays fast; in a model where every type refers to every other it takes about half as long again. The loop can be dropped at the price of a slower first use. It covers the members of the configured maps; those of closed generic maps created while the configuration is built are still compiled on first use
+- [ ] **Decision needed: `ReverseMap` and a member mapped from somewhere else.** A flattened member that the conventions matched to a chain (the default conventions at any depth, or a chain of two across two conventions) keeps that chain when `MapFrom` maps it from somewhere else, and the reverse map writes the member's value both to where `MapFrom` reads it and to the chain, creating the objects on the way; so does AutoMapper 14. A chain that only the new reading of names finds is not written back for such a member, nor for an ignored one
+- [ ] Two open generic maps that name each other as base overflow the stack in `MapperConfiguration.GetDerivedTypeMaps`, in 14.1.1 as well
 - [ ] `MaxDepth` has no effect on a map with `ConvertUsing`, and `ReverseMap` does not carry `MaxDepth` to the reverse map. Documented; decide whether either should change
-
-Left open by the review of the changes above, all in the new code:
-
-- [ ] A derived map that inherits from two maps that are not related to each other (two interfaces) takes the `MaxDepth` of the one included first
-- [ ] When creating a destination throws and code inside the same `Map` call catches the error and maps on, the level stays counted for the rest of that call. A failure that ends the `Map` call is not affected
-- [ ] Open generic classes are closed by two rules, each taken from its counterpart in 14: a condition class like an open generic value resolver, a destination factory like an open generic type converter. On a map with one closed and one open side they give different type arguments. `ForAllMaps` cannot give a closed map an open generic factory
-- [ ] `ConstructUsing(Type)` with a factory that implements `IDestinationFactory` for several compatible type pairs takes the first one it finds; a condition class in the same situation is refused
+- [ ] A request for a map to an open generic type (`typeof(Destination<>)`) fails with a bare `ArgumentException`: an argument error that names the type, pinned by a test, left as it is
