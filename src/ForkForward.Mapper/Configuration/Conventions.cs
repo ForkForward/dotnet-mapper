@@ -171,6 +171,22 @@ public sealed class ConventionsNameSplitMember : NameSplitMember
         }
         var sourceNamingConvention = isReverseMap ? Parent.DestinationNamingConvention : Parent.SourceNamingConvention;
         var separator = sourceNamingConvention.SeparatorCharacter;
+        if (IsMatch(options, sourceType, destType, destMemberType, matches, separator, resolvers, isReverseMap))
+        {
+            return true;
+        }
+        // Nothing was found with every capital read as the start of a word, which is what PascalCaseNamingConvention.Split
+        // says: FormXML is Form, X, M, L and the source member would be form_x_m_l. Only then a run of capitals is read
+        // as one word: Form, XML. Without a separator both readings give the same names, and there is nothing more to try.
+        // Only the name of the destination member is read again: what is left of it after a source member was found
+        // (resolvers) has been put together with the separator and is not in PascalCase.
+        return resolvers.Count == 0 && destinationNamingConvention is PascalCaseNamingConvention && !string.IsNullOrEmpty(separator) &&
+            PascalCaseNamingConvention.SplitRunsOfCapitals(nameToSearch) is { } words &&
+            IsMatch(options, sourceType, destType, destMemberType, words, separator, resolvers, isReverseMap);
+    }
+    bool IsMatch(ProfileMap options, TypeDetails sourceType, Type destType, Type destMemberType, string[] matches, string separator, List<MemberInfo> resolvers, bool isReverseMap)
+    {
+        var length = matches.Length;
         for (var index = 1; index <= length; index++)
         {
             var first = string.Join(separator, matches, 0, index);

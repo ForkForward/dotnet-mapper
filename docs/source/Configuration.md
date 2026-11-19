@@ -101,6 +101,8 @@ var configuration = new MapperConfiguration(cfg => {
 This will map the following properties to each other:
 `  property_name -> PropertyName `
 
+A run of capital letters in a PascalCase destination member is read as one word, and its last capital starts the next word when a lower case letter follows it: `form_xml -> FormXML`, `xml_file -> XMLFile`, `https_connection -> HTTPSConnection`. A digit stays in the word it follows: `html5_parser -> HTML5Parser`. The reading in which every capital starts a word (`a_b_count -> ABCount`) is tried first, so where both find a source member, that one is used.
+
 You can also set this per profile
 
 ```c#
