@@ -246,8 +246,25 @@ public sealed class TypeMap
     public void AddAfterMapAction(LambdaExpression afterMap) => Details.AddAfterMapAction(afterMap);
     public void AddValueTransformation(ValueTransformerConfiguration config) => Details.AddValueTransformation(config);
     public void ConstructUsingServiceLocator() => CustomCtorFunction = Lambda(ServiceLocator(DestinationType));
-    internal LambdaExpression CreateMapperLambda(IGlobalConfiguration configuration) =>
-        Types.ContainsGenericParameters ? null : new TypeMapPlanBuilder(configuration, this).CreateMapperLambda();
+    internal LambdaExpression CreateMapperLambda(IGlobalConfiguration configuration)
+    {
+        if (Types.ContainsGenericParameters)
+        {
+            return null;
+        }
+        TypeMapPlanBuilder builder = default;
+        try
+        {
+            builder = new(configuration, this);
+            return builder.CreateMapperLambda();
+        }
+        // A ForPath member that was given no source is passed on as it is: ForPathWithNullExpressionShouldFail pins
+        // the NullReferenceException it ends in.
+        catch (Exception exception) when (IsUnexpected(exception) && builder.MemberMap is not PathMap { Resolver: null })
+        {
+            throw PlanBuildingError(exception, this, builder.MemberMap);
+        }
+    }
     private PropertyMap GetPropertyMap(string name)
     {
         if (_propertyMaps == null)

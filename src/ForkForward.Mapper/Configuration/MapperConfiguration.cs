@@ -148,7 +148,15 @@ public sealed class MapperConfiguration : IGlobalConfiguration
         Delegate CompileExecutionPlan(MapRequest mapRequest)
         {
             var executionPlan = ((IGlobalConfiguration)this).BuildExecutionPlan(mapRequest);
-            return executionPlan.Compile(); // breakpoint here to inspect all execution plans
+            try
+            {
+                return executionPlan.Compile(); // breakpoint here to inspect all execution plans
+            }
+            // A plan that was built and cannot be compiled: what is known here is the pair of types it is for.
+            catch (Exception exception) when (IsUnexpected(exception))
+            {
+                throw GetPlanBuildingError(exception, mapRequest);
+            }
         }
     }
     [RequiresUnreferencedCode(TrimmingAndAot.Trimming, Url = TrimmingAndAot.Url)]
@@ -174,13 +182,22 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     public LambdaExpression BuildExecutionPlan(Type sourceType, Type destinationType) => this.Internal().BuildExecutionPlan(new(new(sourceType, destinationType)));
     LambdaExpression IGlobalConfiguration.BuildExecutionPlan(in MapRequest mapRequest)
     {
-        var typeMap = ResolveTypeMap(mapRequest.RuntimeTypes) ?? ResolveTypeMap(mapRequest.RequestedTypes);
-        if (typeMap != null)
+        try
         {
-            return GenerateTypeMapExpression(mapRequest.RequestedTypes, typeMap);
+            var typeMap = ResolveTypeMap(mapRequest.RuntimeTypes) ?? ResolveTypeMap(mapRequest.RequestedTypes);
+            if (typeMap != null)
+            {
+                return GenerateTypeMapExpression(mapRequest.RequestedTypes, typeMap);
+            }
+            var mapperToUse = FindMapper(mapRequest.RuntimeTypes);
+            return GenerateObjectMapperExpression(mapRequest, mapperToUse);
         }
-        var mapperToUse = FindMapper(mapRequest.RuntimeTypes);
-        return GenerateObjectMapperExpression(mapRequest, mapperToUse);
+        // A request for an open generic type is passed on as it is: the ArgumentException names the type, and
+        // GenericMapWithUntypedMap pins it.
+        catch (Exception exception) when (IsUnexpected(exception) && !mapRequest.RuntimeTypes.ContainsGenericParameters)
+        {
+            throw GetPlanBuildingError(exception, mapRequest);
+        }
         static LambdaExpression GenerateTypeMapExpression(TypePair requestedTypes, TypeMap typeMap)
         {
             typeMap.CheckProjection();
@@ -274,6 +291,10 @@ public sealed class MapperConfiguration : IGlobalConfiguration
     }
     public static AutoMapperMappingException GetMappingError(Exception innerException, in MapRequest mapRequest) =>
         new("Error mapping types.", innerException, mapRequest.RuntimeTypes) { MemberMap = mapRequest.MemberMap };
+    // An error while a plan is built on first use, outside the plan of a type map (see ExpressionBuilder.PlanBuildingError):
+    // there is the pair of types to name, and the member the request came from, when it came from one.
+    static AutoMapperMappingException GetPlanBuildingError(Exception innerException, in MapRequest mapRequest) =>
+        new(PlanBuildingErrorMessage, innerException, mapRequest.RuntimeTypes) { MemberMap = mapRequest.MemberMap == MemberMap.Instance ? null : mapRequest.MemberMap };
     IReadOnlyCollection<TypeMap> IGlobalConfiguration.GetAllTypeMaps() => _configuredMaps.Values;
     TypeMap IGlobalConfiguration.FindTypeMapFor(Type sourceType, Type destinationType) => FindTypeMapFor(sourceType, destinationType);
     TypeMap IGlobalConfiguration.FindTypeMapFor<TSource, TDestination>() => FindTypeMapFor(typeof(TSource), typeof(TDestination));

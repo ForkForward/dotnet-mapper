@@ -15,6 +15,10 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
     List<ParameterExpression> _variables = configuration.Variables;
     List<Expression> _expressions = configuration.Expressions;
     CatchBlock[] _catches = configuration.Catches;
+    // The member whose part of the plan is being built, null outside the members. When building the plan fails,
+    // TypeMap.CreateMapperLambda reports the error against it.
+    MemberMap _memberMap;
+    internal readonly MemberMap MemberMap => _memberMap;
     public Type DestinationType => _destination.Type;
     ParameterExpression[] GetParameters(ParameterExpression first = null, ParameterExpression second = null)
     {
@@ -134,8 +138,15 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 return null;
             }
-            var types = memberMap.Types();
-            return types.ContainsGenericParameters ? null : configuration.ResolveAssociatedTypeMap(types);
+            try
+            {
+                var types = memberMap.Types();
+                return types.ContainsGenericParameters ? null : configuration.ResolveAssociatedTypeMap(types);
+            }
+            catch (Exception exception) when (IsUnexpected(exception))
+            {
+                throw PlanBuildingError(exception, memberMap.TypeMap, memberMap);
+            }
         }
         [Conditional("DEBUG")]
         static void Trace(TypeMap typeMap, TypeMap memberTypeMap, MemberMap memberMap) =>
@@ -200,8 +211,10 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 continue;
             }
+            _memberMap = pathMap;
             actions.Add(TryPathMap(pathMap));
         }
+        _memberMap = null;
     }
     private void AddBeforeMap(List<Expression> actions)
     {
@@ -228,6 +241,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             {
                 continue;
             }
+            _memberMap = propertyMap;
             var property = TryMemberMap(propertyMap, CreatePropertyMapFunc(propertyMap, _destination, propertyMap.DestinationMember));
             if (_typeMap.ConstructorParameterMatches(propertyMap.DestinationName))
             {
@@ -235,6 +249,7 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
             }
             actions.Add(property);
         }
+        _memberMap = null;
     }
     private Expression TryPathMap(PathMap pathMap)
     {
@@ -290,10 +305,12 @@ public ref struct TypeMapPlanBuilder(IGlobalConfiguration configuration, TypeMap
         List<Expression> body = [];
         foreach (var parameter in constructorMap.CtorParams)
         {
+            _memberMap = parameter;
             var variable = Variable(parameter.DestinationType, parameter.DestinationName);
             variables.Add(variable);
             body.Add(Assign(variable, CreateConstructorParameterExpression(parameter)));
         }
+        _memberMap = null;
         body.Add(CheckReferencesCache(New(constructorMap.Ctor, variables)));
         return Block(variables, body);
     }

@@ -25,6 +25,18 @@ public static class ExpressionBuilder
     // on a ref struct. Every mapping error then surfaced as a NotSupportedException instead of this exception.
     internal static AutoMapperMappingException MemberMappingError(Exception innerException, MemberMap memberMap) =>
         new("Error mapping types.", innerException, memberMap);
+    // The exception for an error while a plan is built, where MemberMappingError is for an error while it runs.
+    // An expression that cannot be built fails somewhere in System.Linq.Expressions, or in a custom mapper, resolver
+    // or converter, and what is thrown there names neither the map nor the member. The member is null when the
+    // error belongs to the type map as a whole. This runs only when building a plan has already failed.
+    internal const string PlanBuildingErrorMessage = "Error building the mapping plan.";
+    internal static AutoMapperMappingException PlanBuildingError(Exception innerException, TypeMap typeMap, MemberMap memberMap) =>
+        new(PlanBuildingErrorMessage, innerException, typeMap) { MemberMap = memberMap };
+    // The exceptions this library throws on purpose while it builds a plan say what is wrong themselves, and callers
+    // rely on their type and message: they are passed on as they are. A nested type map that failed has already
+    // named itself and its member, so the maps above it pass that on too.
+    internal static bool IsUnexpected(Exception exception) =>
+        exception is not (AutoMapperMappingException or AutoMapperConfigurationException or DuplicateTypeMapConfigurationException);
     // The filter of the catch that wraps a mapping error; see WrapsException. A filter runs while the exception is
     // still looking for its handler, so the levels it says no to are left in a single pass, without their handlers
     // running; it costs nothing until an exception is thrown.
