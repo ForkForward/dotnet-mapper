@@ -40,16 +40,16 @@ The full rules are in [AI_POLICY.md](AI_POLICY.md).
 
 ## Status
 
-- The first stable release, `14.1.0`, is on nuget.org: [`ForkForward.Mapper`](https://www.nuget.org/packages/ForkForward.Mapper). What changed in each release is in [CHANGELOG.md](CHANGELOG.md); the plan is in [ROADMAP.md](ROADMAP.md).
+- The current release is `15.0.0`, on nuget.org: [`ForkForward.Mapper`](https://www.nuget.org/packages/ForkForward.Mapper). What changed in each release is in [CHANGELOG.md](CHANGELOG.md); the plan is in [ROADMAP.md](ROADMAP.md).
 
   ```
   dotnet add package ForkForward.Mapper
   ```
 
 - The assembly is `ForkForward.Mapper.dll` and the namespaces start with `ForkForward.Mapper`; the types, their members and the behaviour are those of AutoMapper 14.0.0. Moving a project is a package reference and a `using` directive: [Moving from AutoMapper 14](docs/source/Moving-from-AutoMapper-14.md). Type names that carry the old name, such as `AutoMapperMappingException` and `AddAutoMapper`, are unchanged.
-- The next release is the first that changes mapping itself: conditions, preconditions and destination factories as classes that take services from the container, a switch for polymorphic projection, plan errors that name the map and the member, and fixes for bugs inherited from AutoMapper 14, four of which change behaviour. They cover what AutoMapper gained after 14, as far as it applies here, and were designed and written in this fork: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md), [what behaves differently](docs/source/Moving-from-AutoMapper-14.md#what-behaves-differently-from-automapper-14).
-- The next release targets .NET 10 and .NET 11, the versions that are in support; `net8.0` is no longer a target. An application on .NET 8 or .NET 9 stays on `14.1.1` until it moves.
-- Native AOT and trimming are not supported, and from the next release the build warns when a trimmed or Native AOT application creates a mapper configuration. What happens if you try is in [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md).
+- `15.0.0` is the first release that changes mapping itself: conditions, preconditions and destination factories as classes that take services from the container, a switch for polymorphic projection, plan errors that name the map and the member, and fixes for bugs inherited from AutoMapper 14, four of which change behaviour. They cover what AutoMapper gained after 14, as far as it applies here, and were designed and written in this fork: [gap analysis](docs/analysis/upstream-gap-analysis-2026-11.md), [what behaves differently](docs/source/Moving-from-AutoMapper-14.md#what-behaves-differently-from-automapper-14).
+- `15.0.0` targets .NET 10 and .NET 11, the versions that are in support; `net8.0` is no longer a target. An application on .NET 8 or .NET 9 stays on `14.1.1` until it moves. Despite its number, `15.0.0` is not AutoMapper 15: it is the first major version of this fork.
+- Native AOT and trimming are not supported, and from `15.0.0` the build warns when a trimmed or Native AOT application creates a mapper configuration. What happens if you try is in [Native AOT and trimming](docs/source/Native-AOT-and-trimming.md).
 - Security fixes are written here independently, from the public advisory and this code. Fixed so far: [CVE-2026-32933](docs/security/CVE-2026-32933.md), a source graph nested deeper than the thread's stack allows crashed the process; it now ends in an `AutoMapperMappingException`. Vulnerability scanners know this package as `ForkForward.Mapper`, not `AutoMapper`, so check that page rather than the official advisory for what is fixed here.
 
 ## Using it

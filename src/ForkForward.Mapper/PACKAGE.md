@@ -23,12 +23,12 @@ That is all: the types and their members are those of AutoMapper 14.0.0, and so 
 ## What this fork adds
 
 - Security fixes written independently from the public advisories; so far [CVE-2026-32933](https://github.com/ForkForward/dotnet-mapper/blob/master/docs/security/CVE-2026-32933.md). The two advisories of November 2026 about routes around `MaxDepth` [do not crash this library](https://github.com/ForkForward/dotnet-mapper/blob/master/docs/security/GHSA-6vhm-j9h7-f9gh-and-GHSA-gpwp-5797-mjff.md).
-- From the release that follows 14.1.1: conditions, preconditions and destination factories as classes that take services from the container, a switch for polymorphic projection, plan errors that name the map and the member, and fixes for bugs inherited from AutoMapper 14. Four of the fixes change behaviour; they are listed in [Moving from AutoMapper 14](https://forkforward.dev/dotnet-mapper/Moving-from-AutoMapper-14/#what-behaves-differently-from-automapper-14).
+- From 15.0.0: conditions, preconditions and destination factories as classes that take services from the container, a switch for polymorphic projection, plan errors that name the map and the member, and fixes for bugs inherited from AutoMapper 14. Four of the fixes change behaviour; they are listed in [Moving from AutoMapper 14](https://forkforward.dev/dotnet-mapper/Moving-from-AutoMapper-14/#what-behaves-differently-from-automapper-14).
 - Builds and tests on current .NET SDKs, on Windows and Linux; every change is measured against the previous release and must not be slower or allocate more.
 
 ## .NET versions
 
-From the release that follows 14.1.1 the package targets .NET 10 and .NET 11. `14.1.1` is the last release for .NET 8 and .NET 9.
+15.0.0 targets .NET 10 and .NET 11. `14.1.1` is the last release for .NET 8 and .NET 9. 15.0.0 is a major version because it no longer targets .NET 8 and .NET 9 and because some fixes change behaviour. Despite the number it is not AutoMapper 15, which is another product under another licence: nothing of it is in this fork.
 
 ## Native AOT and trimming
 

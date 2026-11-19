@@ -49,7 +49,7 @@ A condition or a precondition can be a class instead of a lambda. A class can ta
 
 !!! info "Written for this fork"
 
-    This section and the next one are not inherited from AutoMapper. Condition classes exist from the release that follows 14.1.1.
+    This section and the next one are not inherited from AutoMapper. Condition classes exist from 15.0.0.
 
 A condition implements `IMemberCondition<TSource, TDestination, TMember>`. A precondition implements `IMemberPreCondition<TSource, TDestination>`. `ShouldMap` returns `true` to map the member.
 
