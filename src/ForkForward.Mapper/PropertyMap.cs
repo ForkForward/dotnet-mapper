@@ -44,6 +44,8 @@ public sealed class PropertyMap : MemberMap
     public override object NullSubstitute { get => _details?.NullSubstitute; set => Details.NullSubstitute = value; }
     public override LambdaExpression PreCondition { get => _details?.PreCondition; set => Details.PreCondition = value; }
     public override LambdaExpression Condition { get => _details?.Condition; set => Details.Condition = value; }
+    // The source members were found only by following the words of the name through the source types (ConventionsNameSplitMember.IsChainMatch).
+    internal bool SourceMembersThroughChain { get => (_details?.SourceMembersThroughChain).GetValueOrDefault(); set => Details.SourceMembersThroughChain = value; }
     public void AddValueTransformation(ValueTransformerConfiguration config) => Details.AddValueTransformation(config);
     public override IReadOnlyCollection<ValueTransformerConfiguration> ValueTransformers => (_details?.ValueTransformers).NullCheck();
     class MemberMapDetails
@@ -57,6 +59,7 @@ public sealed class PropertyMap : MemberMap
         public LambdaExpression PreCondition;
         public LambdaExpression Condition;
         public IncludedMember IncludedMember;
+        public bool SourceMembersThroughChain;
         public void ApplyInheritedPropertyMap(MemberMapDetails inheritedMappedProperty)
         {
             AllowNull ??= inheritedMappedProperty.AllowNull;

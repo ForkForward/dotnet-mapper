@@ -172,6 +172,13 @@ public abstract class TypeMapConfiguration(MemberList memberList, TypePair types
             {
                 continue;
             }
+            // A chain that only following the words of the name finds is reversed only for a member whose value is read
+            // through it. One that is ignored, or mapped from somewhere else with MapFrom, had no source members before
+            // that existed, and its reverse map wrote nothing to the chain. Chains that were found before are reversed as before.
+            if(propertyMap.SourceMembersThroughChain && !propertyMap.ReadsSourceMembers)
+            {
+                continue;
+            }
             var customExpression = propertyMap.DestinationMember.Lambda();
             ReverseSourceMembers(new(sourceMembers), customExpression);
         }

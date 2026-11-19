@@ -40,6 +40,9 @@ public class MemberMap : IValueResolver
     public MemberInfo SourceMember => Resolver?.GetSourceMember(this);
     public string GetSourceMemberName() => Resolver?.SourceMemberName ?? SourceMember?.Name;
     public bool MustUseDestination => UseDestinationValue is true || !CanBeSet;
+    // The value of the member is read through its source members: it is mapped by convention, or by a value converter that
+    // was given no source member of its own.
+    internal bool ReadsSourceMembers => !Ignored && (Resolver == this || Resolver is ValueConverter { SourceMemberLambda: null, SourceMemberName: null });
     public void MapFrom(string sourceMembersPath, MemberInfo[] members)
     {
         var sourceType = TypeMap.SourceType;

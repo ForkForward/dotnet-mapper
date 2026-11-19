@@ -298,7 +298,16 @@ public sealed class ProfileMap
         }
     }
     public bool MapDestinationPropertyToSource(TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string destMemberName, List<MemberInfo> members, bool reverseNamingConventions) =>
-        MemberConfiguration.IsMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions);
+        MapDestinationPropertyToSource(sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions, out _);
+    // throughChain: the members were found only by following the words of the name through the source types, which
+    // finds chains that were not found before that existed (see ConventionsNameSplitMember.IsChainMatch).
+    internal bool MapDestinationPropertyToSource(TypeDetails sourceTypeDetails, Type destType, Type destMemberType, string destMemberName, List<MemberInfo> members,
+        bool reverseNamingConventions, out bool throughChain)
+    {
+        throughChain = false;
+        return MemberConfiguration.IsMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions) ||
+            (throughChain = MemberConfiguration.IsChainMatch(this, sourceTypeDetails, destType, destMemberType, destMemberName, members, reverseNamingConventions));
+    }
     public bool AllowsNullDestinationValuesFor(MemberMap memberMap = null) => memberMap?.AllowNull ?? AllowNullDestinationValues;
     public bool AllowsNullCollectionsFor(MemberMap memberMap = null) => memberMap?.AllowNull ?? AllowNullCollections;
 }

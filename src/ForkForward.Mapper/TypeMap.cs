@@ -37,9 +37,9 @@ public sealed class TypeMap
             }
             sourceMembers.Clear();
             var propertyType = destinationProperty.GetMemberType();
-            if (profile.MapDestinationPropertyToSource(SourceTypeDetails, destinationType, propertyType, destinationName, sourceMembers, isReverseMap))
+            if (profile.MapDestinationPropertyToSource(SourceTypeDetails, destinationType, propertyType, destinationName, sourceMembers, isReverseMap, out var throughChain))
             {
-                AddPropertyMap(destinationProperty, propertyType, sourceMembers);
+                AddPropertyMap(destinationProperty, propertyType, sourceMembers, throughChain);
             }
         }
     }
@@ -151,10 +151,14 @@ public sealed class TypeMap
     public IEnumerable<LambdaExpression> GetAllIncludedMembers() => IncludedMembersNames.Length == 0 || SourceType.ContainsGenericParameters ?
         IncludedMembers : IncludedMembers.Concat(IncludedMembersNames.Select(name => MemberAccessLambda(SourceType, name, this)));
     public bool ConstructorParameterMatches(string destinationPropertyName) => ConstructorMapping && ConstructorMap[destinationPropertyName] != null;
-    private void AddPropertyMap(MemberInfo destProperty, Type destinationPropertyType, List<MemberInfo> sourceMembers)
+    private void AddPropertyMap(MemberInfo destProperty, Type destinationPropertyType, List<MemberInfo> sourceMembers, bool throughChain = false)
     {
         PropertyMap propertyMap = new(destProperty, destinationPropertyType, this);
         propertyMap.MapByConvention([..sourceMembers]);
+        if (throughChain)
+        {
+            propertyMap.SourceMembersThroughChain = true;
+        }
         AddPropertyMap(propertyMap);
     }
     private void AddPropertyMap(PropertyMap propertyMap)
@@ -382,10 +386,15 @@ public sealed class TypeMap
         public Features<IRuntimeFeature> Features => _features ??= new();
         public void Seal(IGlobalConfiguration configuration, TypeMap thisMap)
         {
+            // The lists are read by index, not with an enumerator. Sealing a map can configure another one before its turn
+            // (MapperConfiguration.ConfigureMapsToSeal), and configuring a base map adds it to the inherited maps of its
+            // derived maps (ProfileMap.ApplyDerivedMaps), also of one that is being sealed here. What is added is sealed and
+            // applied like the maps that were there from the start.
             if (InheritedTypeMaps != null)
             {
-                foreach (var inheritedTypeMap in InheritedTypeMaps)
+                for (var index = 0; index < InheritedTypeMaps.Count; index++)
                 {
+                    var inheritedTypeMap = InheritedTypeMaps[index];
                     inheritedTypeMap.Seal(configuration);
                     var includedMaps = inheritedTypeMap._details?.IncludedMembersTypeMaps;
                     if (includedMaps != null)
@@ -397,16 +406,20 @@ public sealed class TypeMap
             }
             if (IncludedMembersTypeMaps != null)
             {
-                foreach (var includedMemberTypeMap in IncludedMembersTypeMaps)
+                for (var index = 0; index < IncludedMembersTypeMaps.Count; index++)
                 {
+                    var includedMemberTypeMap = IncludedMembersTypeMaps[index];
                     includedMemberTypeMap.TypeMap.Seal(configuration);
                     ApplyIncludedMemberTypeMap(includedMemberTypeMap, thisMap);
                 }
             }
             if (InheritedTypeMaps != null)
             {
-                foreach (var inheritedTypeMap in InheritedTypeMaps)
+                for (var index = 0; index < InheritedTypeMaps.Count; index++)
                 {
+                    var inheritedTypeMap = InheritedTypeMaps[index];
+                    // Sealed in the first loop, unless it was added after that one.
+                    inheritedTypeMap.Seal(configuration);
                     ApplyInheritedTypeMap(inheritedTypeMap, thisMap);
                 }
                 if (MaxDepth == 0)
